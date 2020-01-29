@@ -4,6 +4,7 @@ import inquirer from 'inquirer';
 import executeStart from './commands/start';
 import executeCodePush from './commands/codepush';
 import executeRunAndroid from './commands/runAndroid';
+import executeRunIos from './commands/runIos';
 
 function parseArgumentsIntoOptions(rawArgs){
     const args = arg(
@@ -62,6 +63,8 @@ export async function cli(args){
         case 'run-android':
             executeRunAndroid(options);
             break;
+        case 'run-ios':
+            executeRunIos(options);
+            break;
     }
-    // console.log(options)
 }
