@@ -3,6 +3,8 @@ import { executeCommand, checkFolderBySource } from '../functions';
 
 export default function executeRunAndroid(options){
     const source = checkFolderBySource(options.source);
+    const millbodyApp = JSON.parse(fs.readFileSync('millbodyApp.json'))
+    console.log('Rodando APP '+millbodyApp.account+' no Android')
     if(source == 'theme'){
         executeCommand("cd ../../../ && cd android/ && ./gradlew clean && cd .. && react-native run-android");
     }else{
