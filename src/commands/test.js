@@ -7,7 +7,7 @@ export default function executeRunAndroid(options) {
   const testFileExists = fs.existsSync("index.test.js");
   console.log("Rodando APP " + millbodyApp.account + " no Android");
   if(!testFileExists){
-    console.log("Arquivo index.test.js não existe por favor verifique o index.test.default e crie o arquivo");
+    console.log("Arquivo index.test.js não existe por favor verifique sua existencia e crie o arquivo semelhante ao readme");
   }else {
     if (source == "theme") {
       executeCommand(
