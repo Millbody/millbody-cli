@@ -7,11 +7,11 @@ export default function executeRunAndroid(options) {
   console.log("Rodando APP " + millbodyApp.account + " no Android");
   if (source == "theme") {
     executeCommand(
-      "cd ../../../ && cd android/ && ./gradlew clean && cd .. && ENVFILE=.env react-native run-android"
+      "cd ../../../ && cd android/ && ./gradlew clean && cd .. && ENVFILE=.env.test react-native run-android"
     );
   } else {
     executeCommand(
-      "cd android/ && ./gradlew clean && cd .. && ENVFILE=.env react-native run-android"
+      "cd android/ && ./gradlew clean && cd .. && ENVFILE=.env.test react-native run-android"
     );
   }
   console.log("Limpando cache e rodando android...");
