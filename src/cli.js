@@ -7,12 +7,16 @@ import executeCodePush from "./commands/codepush";
 import executeRunAndroid from "./commands/runAndroid";
 import executeBuildAndroid from "./commands/buildAndroid";
 import executeRunIos from "./commands/runIos";
+import create from './commands/create';
+import updateApk from './commands/updateApk';
 
 function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(
     {
       "--source": String,
       "-s": "--source",
+      "--account": String,
+      "-a": "--acount",
     },
     {
       argv: rawArgs.slice(2),
@@ -21,6 +25,7 @@ function parseArgumentsIntoOptions(rawArgs) {
   return {
     template: args._[0],
     source: args["--source"] == "root" ? "root" : "theme",
+    account: args["--account"]
   };
 }
 
@@ -39,7 +44,7 @@ async function promptForMissingOptions(options) {
       type: "list",
       name: "template",
       message: "Escolha uma opção de comando para rodar: ",
-      choices: ["new", "start", "run-ios", "run-android", "codepush"],
+      choices: ["new", "start", "run-ios", "run-android", "codepush", "create"],
       default: defaultTemplate,
     });
   }
@@ -74,5 +79,10 @@ export async function cli(args) {
     case "build-android":
       executeBuildAndroid(options);
       break;
+    case 'create':
+      return create(options);
+    case 'update-apk':
+      return updateApk(options);
+      
   }
 }

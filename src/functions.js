@@ -1,19 +1,22 @@
 const { exec } = require('child_process');
 const fs = require("fs");
 
-function executeCommand(command){
-    const process = exec(command)
-  
-    process.stdout.on('data', (data) => {
-      console.log(data.toString())
-    })
-  
-    process.stderr.on('data', (data) => {
-      console.log(data.toString())
-    })
-  
-    process.on('exit', (code) => {
-      console.log(code.toString())
+async function executeCommand(command){
+    return new Promise(async function(resolve,reject){
+        const process = await exec(command);
+        
+        process.stdout.on('data', (data) => {
+            console.log(data.toString())
+        })
+        
+        process.stderr.on('data', (data) => {
+            console.log(data.toString())
+        })
+        
+        process.on('exit', (code) => {
+            console.log(code?.toString())
+            resolve(code)
+        })
     })
 }
 
