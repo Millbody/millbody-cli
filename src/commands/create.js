@@ -50,5 +50,5 @@ export default async function create(options){
     await executeCommand(`cd ${rootFolder}/ios && xed .`)
     console.log('Criando os apps nas lojas...')
     console.log('Building Android...')
-    await executeCommand(`cd ${rootFolder}/android && ./gradlew assembleRelease && echo "Building Andoid..." && cd ${rootFolder}/ios && fastlane ${options.track === 'prod' ? 'deploy' : 'create_app'} theme_folder:${themeName}`);
+    await executeCommand(`cd ${rootFolder}/android && ./gradlew bundleRelease && echo "Building Andoid..." && cd ${rootFolder}/ios && fastlane ${options.track === 'prod' ? 'deploy' : 'create_app'} theme_folder:${themeName}`);
 }

@@ -17,6 +17,8 @@ function parseArgumentsIntoOptions(rawArgs) {
       "-s": "--source",
       "--account": String,
       "-a": "--acount",
+      "--track": String,
+      "-t": "--track",
     },
     {
       argv: rawArgs.slice(2),
@@ -25,7 +27,8 @@ function parseArgumentsIntoOptions(rawArgs) {
   return {
     template: args._[0],
     source: args["--source"] == "root" ? "root" : "theme",
-    account: args["--account"]
+    account: args["--account"],
+    track: args["--track"],
   };
 }
 
@@ -82,6 +85,7 @@ export async function cli(args) {
     case 'create':
       return create(options);
     case 'update-apk':
+    case 'updateapp':
       return updateApk(options);
       
   }
