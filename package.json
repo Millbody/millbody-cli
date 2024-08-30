@@ -1,6 +1,6 @@
 {
   "name": "@millbody/millbody-cli",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Um CLI para projetos usando o framework gym.Millbody",
   "main": "src/index.js",
   "bin": {
@@ -28,5 +28,8 @@
     "inquirer": "^7.0.3",
     "node-fetch": "^2.6.1",
     "ttab": "^0.7.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.9.1"
   }
 }
