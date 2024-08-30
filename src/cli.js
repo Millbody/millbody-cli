@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import arg from "arg";
 import inquirer from "inquirer";
 
@@ -16,7 +18,7 @@ function parseArgumentsIntoOptions(rawArgs) {
       "--source": String,
       "-s": "--source",
       "--account": String,
-      "-a": "--acount",
+      "-a": "--account",
       "--track": String,
       "-t": "--track",
     },
