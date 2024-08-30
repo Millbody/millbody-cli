@@ -1,6 +1,6 @@
 const fs = require("fs");
-import { executeCommand, checkFolderBySource } from "../functions";
-import { getAppAccount } from "../services/api";
+import { executeCommand, checkFolderBySource } from "../functions.js";
+import { getAppAccount } from "../services/api.js";
 
 export default async function updateApk(options) {
   const source = checkFolderBySource("root");

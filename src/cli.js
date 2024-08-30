@@ -3,14 +3,14 @@
 import arg from "arg";
 import inquirer from "inquirer";
 
-import executeStart from "./commands/start";
-import executeTest from "./commands/test";
-import executeCodePush from "./commands/codepush";
-import executeRunAndroid from "./commands/runAndroid";
-import executeBuildAndroid from "./commands/buildAndroid";
-import executeRunIos from "./commands/runIos";
-import create from "./commands/create";
-import updateApk from "./commands/updateApk";
+import executeStart from "./commands/start.js";
+import executeTest from "./commands/test.js";
+import executeCodePush from "./commands/codepush.js";
+import executeRunAndroid from "./commands/runAndroid.js";
+import executeBuildAndroid from "./commands/buildAndroid.js";
+import executeRunIos from "./commands/runIos.js";
+import create from "./commands/create.js";
+import updateApk from "./commands/updateApk.js";
 
 function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(

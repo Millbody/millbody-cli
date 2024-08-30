@@ -1,5 +1,5 @@
 const fs = require("fs");
-import { executeCommand, checkFolderBySource } from "../functions";
+import { executeCommand, checkFolderBySource } from "../functions.js";
 
 export default function executeRunAndroid(options) {
   const source = checkFolderBySource(options.source);
