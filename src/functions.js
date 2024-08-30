@@ -1,5 +1,5 @@
-const { exec } = require("child_process");
-const fs = require("fs");
+import { exec } from "child_process";
+import fs from "fs";
 
 // var access = fs.createWriteStream('./millbody.access.log', { flags: 'a' }),
 //     error = fs.createWriteStream('./millbody.error.log', { flags: 'a' });
@@ -45,8 +45,3 @@ export function checkFolderBySource(source) {
     }
   }
 }
-
-module.exports = {
-  executeCommand,
-  checkFolderBySource,
-};

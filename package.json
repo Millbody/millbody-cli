@@ -1,6 +1,6 @@
 {
   "name": "@millbody/millbody-cli",
-  "version": "1.0.93",
+  "version": "1.0.94",
   "description": "Um CLI para projetos usando o framework gym.Millbody",
   "main": "src/index.js",
   "type": "module",
@@ -22,6 +22,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@inquirer/prompts": "^5.3.8",
     "arg": "^4.1.2",
     "axios": "^1.7.5",
     "inquirer": "^10.1.8",
@@ -30,5 +31,8 @@
   },
   "devDependencies": {
     "eslint": "^9.9.1"
+  },
+  "resolutions": {
+    "@inquirer/core/wrap-ansi": "^8.0.1"
   }
 }

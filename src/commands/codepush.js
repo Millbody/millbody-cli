@@ -1,4 +1,5 @@
-const fs = require("fs");
+import fs from "fs";
+
 import { executeCommand, checkFolderBySource } from "../functions.js";
 
 export default function executCodePush(options) {
