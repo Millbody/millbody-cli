@@ -7,8 +7,8 @@ import executeCodePush from "./commands/codepush";
 import executeRunAndroid from "./commands/runAndroid";
 import executeBuildAndroid from "./commands/buildAndroid";
 import executeRunIos from "./commands/runIos";
-import create from './commands/create';
-import updateApk from './commands/updateApk';
+import create from "./commands/create";
+import updateApk from "./commands/updateApk";
 
 function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(
@@ -82,11 +82,10 @@ export async function cli(args) {
     case "build-android":
       executeBuildAndroid(options);
       break;
-    case 'create':
+    case "create":
       return create(options);
-    case 'update-apk':
-    case 'updateapp':
+    case "update-apk":
+    case "updateapp":
       return updateApk(options);
-      
   }
 }

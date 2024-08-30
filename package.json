@@ -1,11 +1,10 @@
 {
   "name": "@millbody/millbody-cli",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Um CLI para projetos usando o framework gym.Millbody",
   "main": "src/index.js",
   "bin": {
-    "@millbody/millbody-cli": "bin/millbody",
-    "millbody": "bin/millbody"
+    "millbody": "src/cli.js"
   },
   "publishConfig": {
     "access": "public"
@@ -24,7 +23,6 @@
   "dependencies": {
     "arg": "^4.1.2",
     "axios": "^0.21.1",
-    "esm": "^3.2.25",
     "inquirer": "^7.0.3",
     "node-fetch": "^2.6.1",
     "ttab": "^0.7.1"
