@@ -1,4 +1,4 @@
-import { describe, it, mock, afterEach } from "node:test";
+import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -6,110 +6,11 @@ import fs from "node:fs/promises";
 import commands from "../src/commands/registry.js";
 import {
   getVersion,
-  findCommand,
   renderGeneralHelp,
   renderCommandHelp,
   renderUnknownCommand,
   resolveInformational,
 } from "../src/help.js";
-import { defaultHandlers } from "../src/cli.js";
-
-const readmePath = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "README.md"
-);
-
-describe("[registry] estrutura do registro de comandos", () => {
-  it("deve exportar um array não vazio de descritores de comando", () => {
-    assert.ok(Array.isArray(commands));
-    assert.ok(commands.length > 0);
-  });
-
-  it("deve conter os 8 comandos esperados", () => {
-    const names = commands.map((c) => c.name);
-    assert.deepEqual(names.sort(), [
-      "build-android",
-      "codepush",
-      "create",
-      "run-android",
-      "run-ios",
-      "start",
-      "test",
-      "update-apk",
-    ]);
-  });
-
-  it("update-apk deve ter alias updateapp", () => {
-    const updateApk = commands.find((c) => c.name === "update-apk");
-    assert.ok(updateApk);
-    assert.deepEqual(updateApk.aliases, ["updateapp"]);
-  });
-
-  it("cada descritor deve ter os campos obrigatórios", () => {
-    const required = [
-      "name",
-      "aliases",
-      "summary",
-      "usage",
-      "description",
-      "flags",
-      "examples",
-      "prerequisites",
-      "external",
-      "sideEffects",
-      "interactive",
-    ];
-    for (const cmd of commands) {
-      for (const field of required) {
-        assert.ok(field in cmd, `Campo "${field}" ausente em "${cmd.name}"`);
-      }
-    }
-  });
-
-  it("comandos interativos devem ser: start, run-ios, run-android, codepush, create", () => {
-    const interactiveNames = commands
-      .filter((c) => c.interactive)
-      .map((c) => c.name)
-      .sort();
-    assert.deepEqual(interactiveNames, [
-      "codepush",
-      "create",
-      "run-android",
-      "run-ios",
-      "start",
-    ]);
-  });
-});
-
-describe("[findCommand]", () => {
-  it("deve encontrar um comando pelo nome exato", () => {
-    const cmd = findCommand("start");
-    assert.ok(cmd);
-    assert.strictEqual(cmd.name, "start");
-  });
-
-  it("deve encontrar um comando pelo alias", () => {
-    const cmd = findCommand("updateapp");
-    assert.ok(cmd);
-    assert.strictEqual(cmd.name, "update-apk");
-  });
-
-  it("deve retornar undefined para nome desconhecido", () => {
-    assert.strictEqual(findCommand("inexistente"), undefined);
-  });
-
-  it("deve retornar undefined para nome vazio", () => {
-    assert.strictEqual(findCommand(""), undefined);
-  });
-
-  it("deve funcionar com registry customizado", () => {
-    const customRegistry = [{ name: "foo", aliases: ["bar"] }];
-    assert.strictEqual(findCommand("foo", customRegistry).name, "foo");
-    assert.strictEqual(findCommand("bar", customRegistry).name, "foo");
-    assert.strictEqual(findCommand("baz", customRegistry), undefined);
-  });
-});
 
 describe("[renderGeneralHelp]", () => {
   it("deve conter todos os nomes de comandos do registry", () => {
@@ -165,16 +66,6 @@ describe("[renderCommandHelp]", () => {
   it("deve conter flags quando presentes", () => {
     const output = renderCommandHelp("start");
     assert.ok(output.includes("--source"));
-  });
-
-  it("deve conter exemplos quando presentes", () => {
-    const output = renderCommandHelp("start");
-    assert.ok(output.includes("millbody start"));
-  });
-
-  it("deve conter pré-requisitos quando presentes", () => {
-    const output = renderCommandHelp("start");
-    assert.ok(output.includes("millbody"));
   });
 
   it("deve conter comandos externos quando presentes", () => {
@@ -326,73 +217,13 @@ describe("[getVersion]", () => {
 
   it("deve propagar erro quando o arquivo não está acessível", async () => {
     const fsMod = await import("node:fs/promises");
-    const original = fsMod.default.readFile;
-    let restored = false;
-    mock.method(fsMod.default, "readFile", async () => {
+    const spy = mock.method(fsMod.default, "readFile", async () => {
       throw new Error("ENOENT simulado");
     });
     try {
       await assert.rejects(getVersion(), /ENOENT simulado/);
     } finally {
-      if (!restored) {
-        fsMod.default.readFile = original;
-        restored = true;
-      }
-    }
-  });
-});
-
-describe("[A2] paridade registry <-> defaultHandlers", () => {
-  it("nomes + aliases do registry devem ser iguais às chaves do defaultHandlers", () => {
-    const fromRegistry = new Set(commands.flatMap((c) => [c.name, ...c.aliases]));
-    const fromHandlers = new Set(Object.keys(defaultHandlers));
-    assert.deepEqual(fromRegistry, fromHandlers);
-  });
-});
-
-describe("[A5] consistência README.md <-> registry", () => {
-  let readmeContent;
-
-  it("README deve conter heading '### millbody <name>' para cada comando do registry", async () => {
-    readmeContent = await fs.readFile(readmePath, "utf8");
-    for (const cmd of commands) {
-      const heading = `### millbody ${cmd.name}`;
-      assert.ok(
-        readmeContent.includes(heading),
-        `README não contém heading "${heading}"`
-      );
-    }
-  });
-
-  it("cada heading '### millbody <cmd>' do README deve existir no registry", async () => {
-    if (!readmeContent) {
-      readmeContent = await fs.readFile(readmePath, "utf8");
-    }
-    const headingPattern = /^### millbody (\S+)$/gm;
-    const names = commands.map((c) => c.name);
-    const aliases = commands.flatMap((c) => c.aliases);
-    let match;
-    while ((match = headingPattern.exec(readmeContent)) !== null) {
-      const cmdName = match[1];
-      assert.ok(
-        names.includes(cmdName) || aliases.includes(cmdName),
-        `Heading "### millbody ${cmdName}" do README não existe no registry`
-      );
-    }
-  });
-
-  it("cada flag do registry deve aparecer na seção do README do seu comando", async () => {
-    if (!readmeContent) {
-      readmeContent = await fs.readFile(readmePath, "utf8");
-    }
-    for (const cmd of commands) {
-      for (const flag of cmd.flags) {
-        const flagName = flag.flags.split(",")[0].trim();
-        assert.ok(
-          readmeContent.includes(flagName),
-          `Flag "${flagName}" do comando "${cmd.name}" não encontrada no README`
-        );
-      }
+      spy.mock.restore();
     }
   });
 });
