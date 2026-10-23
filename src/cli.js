@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import arg from "arg";
-import inquirer from "inquirer";
+import { select } from "@inquirer/prompts";
 
 import executeStart from "./commands/start.js";
 import executeTest from "./commands/test.js";
@@ -12,7 +12,19 @@ import executeRunIos from "./commands/runIos.js";
 import create from "./commands/create.js";
 import updateApk from "./commands/updateApk.js";
 
-function parseArgumentsIntoOptions(rawArgs) {
+const defaultHandlers = {
+  test: (options) => executeTest(options),
+  start: (options) => executeStart(options),
+  codepush: (options) => executeCodePush(options),
+  "run-android": (options) => executeRunAndroid(options),
+  "run-ios": (options) => executeRunIos(options),
+  "build-android": (options) => executeBuildAndroid(options),
+  create: (options) => create(options),
+  "update-apk": (options) => updateApk(options),
+  updateapp: (options) => updateApk(options),
+};
+
+export function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(
     {
       "--source": String,
@@ -28,66 +40,45 @@ function parseArgumentsIntoOptions(rawArgs) {
   );
   return {
     template: args._[0],
-    source: args["--source"] == "root" ? "root" : "theme",
+    source: args["--source"] === "root" ? "root" : "theme",
     account: args["--account"],
     track: args["--track"],
   };
 }
 
-async function promptForMissingOptions(options) {
+export async function promptForMissingOptions(options) {
   const defaultTemplate = "start";
-  if (options.skipPrompts) {
-    return {
-      ...options,
-      template: options.template || defaultTemplate,
-    };
+
+  if (options.template) {
+    return options;
   }
 
-  const questions = [];
-  if (!options.template) {
-    questions.push({
-      type: "list",
-      name: "template",
-      message: "Escolha uma opção de comando para rodar: ",
-      choices: ["new", "start", "run-ios", "run-android", "codepush", "create"],
-      default: defaultTemplate,
-    });
+  if (!process.stdin.isTTY) {
+    return { ...options, template: defaultTemplate };
   }
 
-  const answers = await inquirer.prompt(questions);
-  return {
-    ...options,
-    template: options.template || answers.template,
-  };
+  const template = await select({
+    message: "Escolha uma opção de comando para rodar: ",
+    choices: [
+      { name: "new", value: "new" },
+      { name: "start", value: "start" },
+      { name: "run-ios", value: "run-ios" },
+      { name: "run-android", value: "run-android" },
+      { name: "codepush", value: "codepush" },
+      { name: "create", value: "create" },
+    ],
+    default: defaultTemplate,
+  });
+
+  return { ...options, template };
 }
 
-export async function cli(args) {
+export async function cli(args, handlers = defaultHandlers) {
   let options = parseArgumentsIntoOptions(args);
   options = await promptForMissingOptions(options);
-  const { template, source } = options;
-  switch (template) {
-    case "test":
-      executeTest(options);
-      break;
-    case "start":
-      executeStart(options);
-      break;
-    case "codepush":
-      executeCodePush(options);
-      break;
-    case "run-android":
-      executeRunAndroid(options);
-      break;
-    case "run-ios":
-      executeRunIos(options);
-      break;
-    case "build-android":
-      executeBuildAndroid(options);
-      break;
-    case "create":
-      return create(options);
-    case "update-apk":
-    case "updateapp":
-      return updateApk(options);
+  const { template } = options;
+  const handler = handlers[template];
+  if (handler) {
+    return handler(options);
   }
 }
