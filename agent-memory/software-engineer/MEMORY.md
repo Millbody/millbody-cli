@@ -24,7 +24,7 @@
 - Erros do `arg` library: capturar com try/catch, preservar `err.message` original, adicionar sugestão, usar `cause`
 - `import.meta.url` para resolver caminhos de arquivos relativos ao módulo (não ao cwd)
 - Funções puras para render/resolve — injetar `registry` como parâmetro com default para testabilidade
-- Pattern de handler injetável: `cli(args, handlers = defaultHandlers)` para testes
+- Pattern de handler injetável: `cli(args, handlers = defaultHandlers, deps = {})` para testes; 3º param com resolveArch e expoHandlers injetáveis
 - Injeção de dependência para child_process: módulos recebem `spawn`/`execFile` como parâmetro; somente `src/arch/proc.js` importa `node:child_process`
 - `hasBinary` usa PATH scan com `fs.existsSync` (sem processos); inclui `/opt/homebrew/bin` e `/usr/local/bin` extras
 
@@ -61,11 +61,21 @@ Esse conflito precisa ser escalado ao usuário/orchestrator quando o qa-reviewer
 - Entregue na branch `node23-upgrade`; arquivos principais em `src/arch/`, `src/requirements/`, `src/commands/doctor.js`, `src/commands/setup.js`, `scripts/postinstall.js`
 - Seam D1: apenas `src/arch/proc.js` importa `node:child_process`; todos os demais recebem por DI
 - Detecção D5: `detectArchitecture` retorna `{arch, reason, ambiguous}`; fail-safe (try/catch em leituras); precedência `--arch` > expo > legacy > null
-- Postinstall D3: skip em MILLBODY_SKIP_SETUP/CI vars/non-darwin/npm_config_global!=="true"/INIT_CWD===pkgDir/root uid 0
-- Registry: campo `archs` por comando; novos comandos: `build-ios` (expo-only), `web` (expo-only), `connect-alderaan` (expo-only), `doctor` (ambas), `setup` (ambas)
-- Registry dividido em sub-módulos (cada <300 linhas): `src/commands/registry/legacy.js` (start,test,codepush), `src/commands/registry/expo.js` (build-ios,web,connect-alderaan), `src/commands/registry/shared.js` (run-ios,run-android,build-android,create,update-apk,doctor,setup); `src/commands/registry.js` é agregador fino que mantém MESMA ORDEM do array original
-- Consistência README↔registry: teste em `test/help-consistency.test.js` verifica `### millbody <name>` e flags por comando — manter sincronizados
-- Estado atual de testes: 355 total, 346 pass, 0 fail, 9 todo (todos `# BUG` legados fora de escopo); cobertura 97.80/94.53/91.23 >= gate 90/85/90
+- Postinstall D3 (F4 Ciclo 2): skip em MILLBODY_SKIP_SETUP/CI/non-darwin/root/dev-install-realpath/local-dep-in-node_modules; REMOVIDO o gate npm_config_global (yarn global e pnpm global também devem rodar o setup); "dev install" = INIT_CWD===pkgDir OU pkgDir dentro de INIT_CWD/node_modules
+- Registry: campo `archs` por comando; `start` tem `["legacy","expo"]` (corrigido no Ciclo 2); comandos expo-only em `src/commands/registry/expo.js`
+- Registry dividido em sub-módulos: `src/commands/registry/legacy.js` (start,test,codepush), `src/commands/registry/expo.js` (build-ios,web,connect-alderaan), `src/commands/registry/shared.js` (run-ios,run-android,build-android,create,update-apk,doctor,setup)
+- Consistência README↔registry: teste em `test/help-consistency.test.js`
+- Estado atual de testes: 347 pass, 0 fail, 9 todo (BUG legados fora de escopo)
+
+## Roteamento por Arquitetura (F1/F2 Ciclo 2)
+
+- `cli.js` exporta `defaultHandlers` com APENAS handlers legados/utilitários (sem `build-ios`, `web`, `connect-alderaan`)
+- `cli(args, handlers, {resolveArch, expoHandlers} = {})` — 3º param injetável para testes
+- Lógica: resolve {arch, projectDir} via `resolveProjectArch()`; arch==="expo" E comando em expoHandlers → usa expo handler; senão → legacy handler com `process.chdir(projectDir)` quando --project foi passado
+- Fallback: quando --project E --arch NÃO são passados e detecção falha → fallback silencioso para legacy (preserva comportamento pré-existente)
+- Erro propagado SOMENTE quando `--project` ou `--arch` foram passados explicitamente
+- Paridade test em `cli.test.js` atualizada: registry "legacy" deve cobrir defaultHandlers (expo-only excluídos); `test/registry.test.js` test (unidirecional) permanece inalterado
+- Verificação comportamental confirmada: `millbody start|run-ios|web|create --project <expo-dir>` chama `yarn <script>` com cwd = projeto; `millbody start` em dir legado (sem --project) segue path legado
 
 ## Observações
 
