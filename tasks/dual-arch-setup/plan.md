@@ -28,7 +28,7 @@ Além disso: instalação automática de dependências externas (postinstall bes
 - [x] `src/help.js` — render com suporte por arquitetura; flags `--arch`/`--project`
 - [x] `package.json` — adicionar `"postinstall": "node scripts/postinstall.js"`, incluir `scripts` em `files`
 - [x] `README.md` — seções de arquitetura, instalação automática, tutorial expo, correção do texto de PATH
-- [ ] `test/*` — novos testes + ajustes de consistência README↔registry
+- [x] `test/*` — novos testes + ajustes de consistência README↔registry
 
 ### Fora do Escopo (NÃO tocar)
 - Corrigir bugs legados: injeção de shell em `functions.js::executeCommand` (exec), `kill -9 lsof:8081`, `killall Xcode`, `--source theme` chdir. O fluxo legado permanece **idêntico** (213 pass + 9 todo continuam valendo).
@@ -217,14 +217,14 @@ Classificação required vs opcional no `doctor`: faltar um item `required:true 
 - [x] T6.2 [LOW] `docs/003-dual-arch-setup.md` — doc de entrega (incluir item E: senha keystore em app-mobile/millbody.json)
 
 ### Fase 7: Testes (test-engineer) — TODOS com DI/processFake, deny-all, sem binário real
-- [ ] T7.1 [MEDIUM] Detecção (fixtures expo/legacy/ambíguo/nenhum; app.json malformado fail-safe; --project arquivo vs dir)
-- [ ] T7.2 [MEDIUM] Runner (spawn injetado; exit code; ENOENT/error; signal; sem shell)
-- [ ] T7.3 [MEDIUM] expoCommands (mapeamento; create --account regex + upsert `.env.account` EC06; sem `--account`; unsupported exit≠0)
-- [ ] T7.4 [HIGH] requirements/detect (execFile injetado; `hasBinary` PATH scan; java stderr/versão antiga; keg-only; Xcode/Android)
-- [ ] T7.5 [MEDIUM] doctor/setup (dry-run; yes; TTY stdin+stdout; exit codes; detector que crasha não derruba tabela)
-- [ ] T7.6 [MEDIUM] postinstall `shouldSkip` table-driven (CI/SKIP/dev-install realpath/non-darwin/root/global) + `run` sempre exit 0 (runSetup injetado)
-- [ ] T7.7 [LOW] Consistência README↔registry + help render + completude archs↔expoCommands (O3)
-- [ ] T7.8 [MEDIUM] Regressão legado (D2): cada comando legado em tmpdir legado gera os MESMOS comandos/mensagens; 213 pass + 9 todo intactos; bin real só `--help`/`--version`/`doctor`/`setup --dry-run` com detectores mockados
+- [x] T7.1 [MEDIUM] Detecção (fixtures expo/legacy/ambíguo/nenhum; app.json malformado fail-safe; --project arquivo vs dir)
+- [x] T7.2 [MEDIUM] Runner (spawn injetado; exit code; ENOENT/error; signal; sem shell)
+- [x] T7.3 [MEDIUM] expoCommands (mapeamento; create --account regex + upsert `.env.account` EC06; sem `--account`; unsupported exit≠0)
+- [x] T7.4 [HIGH] requirements/detect (execFile injetado; `hasBinary` PATH scan; java stderr/versão antiga; keg-only; Xcode/Android)
+- [x] T7.5 [MEDIUM] doctor/setup (dry-run; yes; TTY stdin+stdout; exit codes; detector que crasha não derruba tabela)
+- [x] T7.6 [MEDIUM] postinstall `shouldSkip` table-driven (CI/SKIP/dev-install realpath/non-darwin/root/global) + `run` sempre exit 0 (runSetup injetado)
+- [x] T7.7 [LOW] Consistência README↔registry + help render + completude archs↔expoCommands (O3)
+- [x] T7.8 [MEDIUM] Regressão legado (D2): cada comando legado em tmpdir legado gera os MESMOS comandos/mensagens; 213 pass + 9 todo intactos; bin real só `--help`/`--version`/`doctor`/`setup --dry-run` com detectores mockados
 
 ### Fase 8: QA
 - [ ] T8.1 qa-reviewer (com dual analysis) → veredito ao orchestrator
