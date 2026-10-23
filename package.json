@@ -9,7 +9,8 @@
   },
   "files": [
     "bin",
-    "src"
+    "src",
+    "scripts"
   ],
   "publishConfig": {
     "access": "public"
@@ -18,6 +19,7 @@
     "node": ">=23"
   },
   "scripts": {
+    "postinstall": "node scripts/postinstall.js",
     "test": "node --test --experimental-test-module-mocks test/*.test.js",
     "test:coverage": "node --test --experimental-test-module-mocks --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=85 --test-coverage-functions=90 --test-coverage-exclude='test/**' --test-coverage-exclude='**/millbody-api-test-*/**' --test-coverage-exclude='**/millbody-sandbox-*/**' test/*.test.js"
   },
