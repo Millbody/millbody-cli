@@ -197,4 +197,16 @@ describe("[api] getAppAccount", () => {
 
     assert.deepEqual(result, expectedPayload);
   });
+
+  it("deve lançar Error quando Constants não expõe constants.uri", async () => {
+    const tmpdir = await makeTmpdir();
+    await writeFile(
+      path.join(tmpdir, "mbCore", "Constants.js"),
+      `export const constants = {};`
+    );
+    await assert.rejects(
+      getAppAccount("acc", tmpdir),
+      /não expõe constants\.uri/
+    );
+  });
 });
