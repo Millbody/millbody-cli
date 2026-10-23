@@ -18,7 +18,7 @@
     "node": ">=23"
   },
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test test/*.test.js"
   },
   "keywords": [
     "cli",
