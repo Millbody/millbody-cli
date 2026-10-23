@@ -9,12 +9,38 @@ export function installExecMock() {
     setImmediate(() => child.emit("exit", 0));
     return child;
   });
-  mock.module("node:child_process", { namedExports: { exec } });
+
+  const execFile = mock.fn((...args) => {
+    const callback = typeof args[args.length - 1] === "function" ? args[args.length - 1] : null;
+    if (callback) {
+      setImmediate(() => callback(null, "", ""));
+      return;
+    }
+    return Promise.resolve({ stdout: "", stderr: "" });
+  });
+
+  const spawn = mock.fn((cmd, spawnArgs, opts) => {
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    setImmediate(() => child.emit("close", 0, null));
+    return child;
+  });
+
+  const spawnSync = mock.fn(() => ({ status: 0, stdout: "", stderr: "", error: null }));
+
+  mock.module("node:child_process", { namedExports: { exec, execFile, spawn, spawnSync } });
 
   return {
     exec,
+    execFile,
+    spawn,
+    spawnSync,
     reset() {
       exec.mock.resetCalls();
+      execFile.mock.resetCalls();
+      spawn.mock.resetCalls();
+      spawnSync.mock.resetCalls();
     },
     commands() {
       return exec.mock.calls.map((call) => call.arguments[0]);
