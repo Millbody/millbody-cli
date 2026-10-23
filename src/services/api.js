@@ -19,7 +19,10 @@ async function resolveConstants(rootFolder) {
       }
       return constants;
     } catch (err) {
-      if (err.code === "ERR_MODULE_NOT_FOUND" && err.message?.includes(url)) {
+      if (
+        err.code === "ERR_MODULE_NOT_FOUND" &&
+        (err.message?.includes(url) || err.message?.includes(candidate))
+      ) {
         continue;
       }
       throw err;
