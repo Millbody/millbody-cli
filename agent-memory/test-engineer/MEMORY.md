@@ -1,37 +1,55 @@
 # Agent Memory — test-engineer
 
 ## Padrões de Teste
-- Projeto ESM, `node:test` + `node:assert/strict`, zero libs externas. Arquivos em `test/*.test.js`; helpers em `test/helpers/` (fora do glob).
-- Scripts: `npm test` e `npm run test:coverage` (flags `--experimental-test-module-mocks`, limiares 90/85/90, exclusões `test/**`, `**/millbody-api-test-*/**`, `**/millbody-sandbox-*/**`).
-- Bugs de produção conhecidos ficam como `{ todo: '...' }` com o comportamento correto esperado.
+
+- Framework: Node built-in `node:test` com `node:assert/strict`
+- Runner: `node --test --experimental-test-module-mocks test/*.test.js`
+- Coverage: `--experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=85 --test-coverage-functions=90`
+- Convenção de arquivo: `*.test.js` em `test/`
+- Projeto usa ESM (`"type": "module"`) — usar `import.meta.url` + `fileURLToPath` para `__dirname`
+- Testes e2e de processo filho: usar `spawnSync` (mais simples que spawn+Promise para e2e)
 
 ## Estratégias de Mock
-- Mocke só fronteiras externas: `mock.module('node:child_process', {namedExports:{exec}})` (vale para `import from "child_process"`), `globalThis.fetch`, `@inquirer/prompts`. NUNCA mocke módulos de produção (`functions.js`, `api.js`, `cli.js`): a cobertura mesclada entre processos fica errada (cli.js 23%, api.js 27%).
-- Caminhos de `mock.module` são relativos ao arquivo que chama (helper em test/helpers precisa de `../../src`).
-- Exec fake: EventEmitter com stdout/stderr, emite `exit` via setImmediate (executeCommand faz `await exec()` antes de ligar listeners).
-- bin/millbody: testar via processo filho (cobertura do filho é mesclada); ExitPromptError via `--import` preload com `module.register` hook de resolve que troca `@inquirer/prompts`.
-- process.exit mockado NÃO interrompe a execução: o código segue adiante (cuidado para não chegar em exec real).
-- Fixtures com `fs.mkdtemp` + `realpathSync` + `process.chdir` e restauração (`test/helpers/sandbox.js`); aguardar `fs.writeFile` assíncrono (create.js) com `waitFor`/pequeno delay no afterEach.
+
+- `installExecMock()` em `test/helpers/world.js`: mock de `exec/execFile/spawn/spawnSync` via `mock.module("node:child_process")`
+- `installProcMock(responses)` em `test/helpers/world.js`: deny-by-default, respostas por binário
+- `mock.module` deve ser chamado ANTES do `import` do módulo que usa child_process
+- Apenas `src/arch/proc.js` importa diretamente `node:child_process` (seam único)
+- Testes e2e de processo filho: shims shell scripts reais em tmpdir, sem mock de child_process
+
+## E2E: Shims de Processo Filho
+
+- Criar shims como shell scripts executáveis que registram `argv=$* cwd=$(pwd)` em `$MILLBODY_SHIM_LOG`
+- PATH restrito: `${shimDir}:${nodeDir}` onde `nodeDir = path.dirname(process.execPath)`
+- Usar `fs.realpathSync(fs.mkdtempSync(...))` para resolver symlinks do macOS `/private/tmp`
+- Passar `MILLBODY_SHIM_LOG` no env do spawnSync para cada teste
+- Usar arquivo de log único por teste (contador sequencial) para isolar asserções
+- Shim content: `#!/bin/sh\n[ -n "$MILLBODY_SHIM_LOG" ] && printf "argv=%s cwd=%s\\n" "$*" "$(pwd)" >> "$MILLBODY_SHIM_LOG"\n`
+
+## Fixtures
+
+- `expoProject`: `millbody.json` + `app.config.ts` + `package.json` (com `dependencies.expo`)
+- `legacyThemeProject`: `screens/.keep` + `millbodyApp.json`
+- Definidas em `test/helpers/world.js` para testes unitários
+- Para e2e: criar em tmpdir real com `fs.mkdtempSync`
 
 ## Erros Recorrentes & Soluções
-- `mock.restoreAll()` também desfaz `mock.module` — restaure spies individualmente (`spy.mock.restore()`). Isso causou execução REAL de `npx react-native` uma vez; sempre bloquear exec real.
-- Novo import com query string (`?run=`) não é mapeado na cobertura.
-- Aviso ExperimentalWarning chega via console.error; filtre em asserts.
+
+- mock.module call order: deve preceder o import do módulo alvo; em ESM com node:test, colocar antes do await import()
+- macOS tmpdir: `/tmp` é symlink para `/private/tmp`; usar `fs.realpathSync` para comparações de cwd
+- Testes e2e com spawnSync: usar `timeout: 15000` para evitar travamento
+- Coverage com e2e tests: e2e tests em processo filho NÃO contribuem para cobertura do processo pai
 
 ## Cobertura & Métricas
-- Final: 99.55% linhas, 97.46% branches, 100% funções. Resíduo: cli.js 72-73 (artefato de mescla de cobertura: coberto isolado), branch do bin (ExitPromptError `?.`).
+
+- Thresholds: lines=90, branches=85, functions=90
+- Cobertura atual (pós F6): lines=97.84%, branches=94.43%, functions=93.81%
+- Arquivos mais difíceis: `scripts/postinstall.js` (funcs=50% — parte do timeout/process.exit não testável), `src/commands/setup.js`
+- `bin/millbody`: branches=66.67% (caso ExitPromptError vs exitCode) — exclui da cobertura via exclude pattern
 
 ## Observações
-- Executar `new Promise(async ...)` em executeCommand: se `exec` lançar, a promise nunca resolve (não testado).
 
-## Dupla Arquitetura (dual-arch-setup) — padrões de teste
-- Preferir INJEÇÃO DE DEPENDÊNCIA a `mock.module`. `runScript(dir, script, args, {spawn})`, detectores (`{execFile, env, existsSync}`), doctor/setup (`(options, deps)`), postinstall `run({env, platform, pkgDir, runSetup, log})` e `shouldSkip(env, platform, pkgDir)` são todos injetáveis — basta passar `mock.fn`/fakes. Helpers em `test/helpers/processFake.js`: `makeFakeChild({exitCode,signal,error})` e `makeExecFileFn(responses)` (deny-all: bin não roteirizado → erro).
-- `mock.module("@inquirer/prompts", { namedExports: { confirm/select } })` só quando o código faz `await import("@inquirer/prompts")` (setup TTY). Use uma var `let impl` + wrapper para variar por teste; reset no `beforeEach`. ExitPromptError: `err.name="ExitPromptError"` e `assert.rejects` (setup NÃO engole).
-- `scripts/postinstall.js` executa `run()` no fim do módulo ao ser importado. Defina `process.env.MILLBODY_SKIP_SETUP="1"` ANTES do `await import(...)` para o run de import pular; limpe `<pkgDir>/.millbody-postinstall.log` num `after`. node:test roda cada arquivo em processo separado → env não vaza entre arquivos.
-- CUIDADO lifecycle: dirs criados no corpo de `describe()` (uma vez) NÃO podem ser limpos em `afterEach` (seriam apagados antes dos testes seguintes). Use lista `persistent` limpa só no `after`; `created` (per-test) no `afterEach`.
-- doctor/setup usam `resolveArch` com fs REAL no projectDir → criar fixture real em tmpdir (reuse `expoProject`/`legacyThemeProject` de world.js) e passar `projectDir`. ttabPath resolvido via `require.resolve("ttab/...")` real, mas o `detect` da ttab usa `existsSync` injetado → controlável.
-- `hasBinary` é varredura de PATH (fs), NÃO `command -v`; inclui `/opt/homebrew/bin` e `/usr/local/bin` sempre. `javaMajor` tenta `/usr/libexec/java_home` e cai para `java` direto, lendo stderr (`version "1.8..."` → 8; `"17..."` → 17).
-- Invariante seam child_process: validado por teste estático escaneando os módulos NOVOS (src/arch, src/requirements, doctor/setup, scripts/postinstall) — só `src/arch/proc.js` importa. `src/functions.js` (legado, `import {exec} from "child_process"`) é exceção conhecida e fica FORA do escopo do invariante.
-- Regressão D2: `cli(argv("start","--source","root",...))` com e sem `--arch legacy --project .` deve gerar `deepEqual(shell.commands())` — flags novas não alteram o legado.
-- Testes reais de bin limitados a `--help`/`--version`/`help` (bin.test.js). doctor/setup via bin real NÃO são automatizados (detectores spawnam java/xcode-select reais) → CA02/CA03 são checagens MANUAIS do orchestrator.
-- Cobertura final: all files 97.77 linhas / 94.50 branches / 91.23 funcs (gate 90/85/90, exit 0). Novos arquivos de teste: arch.detect, arch.runner, arch.expoCommands, requirements.detect, requirements, commands.doctor, commands.setup, postinstall, consistency.archs, regression.legacy. Suíte: 346 pass + 9 todo.
+- 9 todos pré-existentes são BUGs documentados (fora do escopo da tarefa)
+- Baseline: 347 pass, 0 fail, 9 todo → após F6: 358 pass, 0 fail, 9 todo
+- F6 adicionou 11 testes e2e em `test/e2e.arch.test.js`
+- postinstall: "pkgDir dentro de node_modules" test já existe em `test/postinstall.test.js` (linha 58)
