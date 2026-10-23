@@ -125,3 +125,10 @@ CLI Node.js ESM (`"type": "module"`). Ambiente local: Node v23.11.1, npm 11.13.0
 
 ### Baseline Trivy (medido)
 - `trivy fs --scanners vuln .` no estado inicial: 76 achados (2 CRITICAL, 30 HIGH, 40 MEDIUM, 4 LOW) — isso DUPLICA porque escaneia `package-lock.json` E `yarn.lock`. Por lockfile = 38 (1 CRITICAL, 15 HIGH, 20 MEDIUM, 2 LOW), coerente com o baseline informado. Reportar antes/depois por lockfile.
+
+### Fase 5: Cobertura de testes
+- [x] T5.1: Helpers de teste (`test/helpers/sandbox.js`, `world.js`, preload de ExitPromptError) sem dependências novas.
+- [x] T5.2: Testes unitários de `functions.js` (exec mockado via `mock.module('node:child_process')`) e `bin/millbody` (processo filho em pasta vazia).
+- [x] T5.3: Testes dos comandos (`start`, `codepush`, `runAndroid`, `buildAndroid`, `runIos`, `test`, `create`, `updateApk`) com exec/fetch mockados.
+- [x] T5.4: Integração `cli` -> comandos e prompt interativo; caso de `constants.uri` ausente em `api.js`.
+- [x] T5.5: Scripts `test` e `test:coverage` (limiares 90/85/90). Bugs conhecidos registrados como testes `todo`.
