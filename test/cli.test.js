@@ -4,7 +4,9 @@ import {
   parseArgumentsIntoOptions,
   promptForMissingOptions,
   cli,
+  defaultHandlers,
 } from "../src/cli.js";
+import commands from "../src/commands/registry.js";
 
 describe("[cli] parseArgumentsIntoOptions", () => {
   it('deve retornar template "start" quando args contém "start"', () => {
@@ -142,10 +144,11 @@ describe("[cli] roteamento com handlers injetáveis", () => {
     assert.strictEqual(testHandler.mock.calls.length, 1);
   });
 
-  it("não deve lançar quando o template não tem handler correspondente", async () => {
+  it("deve lançar Comando desconhecido quando o template não tem handler correspondente", async () => {
     const handlers = {};
-    await assert.doesNotReject(
-      () => cli(["node", "bin", "nonexistent-cmd-xyz"], handlers)
+    await assert.rejects(
+      () => cli(["node", "bin", "nonexistent-cmd-xyz"], handlers),
+      /Comando desconhecido/
     );
   });
 
@@ -162,5 +165,137 @@ describe("[cli] roteamento com handlers injetáveis", () => {
     const [options] = handler.mock.calls[0].arguments;
     assert.strictEqual(options.account, "test-org");
     assert.strictEqual(options.track, "prod");
+  });
+
+  it("deve retornar sem chamar handler quando --help é passado", async () => {
+    const handler = mock.fn(async () => {});
+    const handlers = { start: handler };
+    const logSpy = mock.method(console, "log", () => {});
+    try {
+      await cli(["node", "bin", "--help"], handlers);
+      assert.strictEqual(handler.mock.calls.length, 0);
+    } finally {
+      logSpy.mock.restore();
+    }
+  });
+
+  it("deve retornar sem chamar handler quando --version é passado", async () => {
+    const handler = mock.fn(async () => {});
+    const handlers = { start: handler };
+    const logSpy = mock.method(console, "log", () => {});
+    try {
+      await cli(["node", "bin", "--version"], handlers);
+      assert.strictEqual(handler.mock.calls.length, 0);
+    } finally {
+      logSpy.mock.restore();
+    }
+  });
+
+  it("deve retornar sem chamar handler quando comando é help", async () => {
+    const handler = mock.fn(async () => {});
+    const handlers = { start: handler };
+    const logSpy = mock.method(console, "log", () => {});
+    try {
+      await cli(["node", "bin", "help"], handlers);
+      assert.strictEqual(handler.mock.calls.length, 0);
+    } finally {
+      logSpy.mock.restore();
+    }
+  });
+
+  it("deve retornar sem chamar handler quando comando é help start", async () => {
+    const handler = mock.fn(async () => {});
+    const handlers = { start: handler };
+    const logSpy = mock.method(console, "log", () => {});
+    try {
+      await cli(["node", "bin", "help", "start"], handlers);
+      assert.strictEqual(handler.mock.calls.length, 0);
+    } finally {
+      logSpy.mock.restore();
+    }
+  });
+
+  it("deve lançar para comando desconhecido com --help (A3)", async () => {
+    const handlers = {};
+    await assert.rejects(
+      () => cli(["node", "bin", "foo-inexistente", "--help"], handlers),
+      /Comando desconhecido/
+    );
+  });
+
+  it("deve lançar para template desconhecido — prototype pollution: constructor (C1)", async () => {
+    const handlers = defaultHandlers;
+    await assert.rejects(
+      () => cli(["node", "bin", "constructor"], handlers),
+      /Comando desconhecido/
+    );
+  });
+
+  it("deve lançar para template desconhecido — prototype pollution: toString (C1)", async () => {
+    const handlers = defaultHandlers;
+    await assert.rejects(
+      () => cli(["node", "bin", "toString"], handlers),
+      /Comando desconhecido/
+    );
+  });
+});
+
+describe("[cli] parseArgumentsIntoOptions — flags informacionais", () => {
+  it("deve retornar help=true quando --help é passado", () => {
+    const result = parseArgumentsIntoOptions(["node", "bin", "--help"]);
+    assert.strictEqual(result.help, true);
+  });
+
+  it("deve retornar help=true quando -h é passado", () => {
+    const result = parseArgumentsIntoOptions(["node", "bin", "-h"]);
+    assert.strictEqual(result.help, true);
+  });
+
+  it("deve retornar version=true quando --version é passado", () => {
+    const result = parseArgumentsIntoOptions(["node", "bin", "--version"]);
+    assert.strictEqual(result.version, true);
+  });
+
+  it("deve retornar version=true quando -v é passado", () => {
+    const result = parseArgumentsIntoOptions(["node", "bin", "-v"]);
+    assert.strictEqual(result.version, true);
+  });
+
+  it("deve retornar template=help e helpSubcommand=start para 'millbody help start'", () => {
+    const result = parseArgumentsIntoOptions(["node", "bin", "help", "start"]);
+    assert.strictEqual(result.template, "help");
+    assert.strictEqual(result.helpSubcommand, "start");
+  });
+
+  it("deve retornar help=true e helpSubcommand=start para 'millbody start --help'", () => {
+    const result = parseArgumentsIntoOptions(["node", "bin", "start", "--help"]);
+    assert.strictEqual(result.help, true);
+    assert.strictEqual(result.helpSubcommand, "start");
+  });
+
+  it("deve lançar para flag desconhecida com mensagem de sugestão", () => {
+    assert.throws(
+      () => parseArgumentsIntoOptions(["node", "bin", "--xyz-unknown"]),
+      /Use "millbody --help"/
+    );
+  });
+
+  it("M2: start -v deve retornar version=true (version tem prioridade)", () => {
+    const result = parseArgumentsIntoOptions(["node", "bin", "start", "-v"]);
+    assert.strictEqual(result.version, true);
+    assert.strictEqual(result.template, "start");
+  });
+});
+
+describe("[A2] paridade registry <-> defaultHandlers (cli.test.js)", () => {
+  it("nomes + aliases do registry devem cobrir exatamente as chaves do defaultHandlers", () => {
+    const fromRegistry = new Set(commands.flatMap((c) => [c.name, ...c.aliases]));
+    const fromHandlers = new Set(Object.keys(defaultHandlers));
+    for (const key of fromRegistry) {
+      assert.ok(fromHandlers.has(key), `"${key}" do registry não tem handler`);
+    }
+    for (const key of fromHandlers) {
+      assert.ok(fromRegistry.has(key), `"${key}" do defaultHandlers não está no registry`);
+    }
   });
 });

@@ -112,25 +112,20 @@ describe("[cli] integração cli -> comando com mocks", () => {
     await assert.rejects(cli(argv("create", "-a", "acme")), /Falha de rede.*API fora/);
   });
 
-  it("não deve executar nada para template desconhecido (comportamento atual)", async () => {
-    const result = await cli(argv("inexistente"));
-    assert.equal(result, undefined);
+  it("deve rejeitar com Comando desconhecido para template desconhecido", async () => {
+    await assert.rejects(
+      () => cli(argv("inexistente")),
+      /Comando desconhecido/
+    );
     assert.equal(shell.commands().length, 0);
   });
 
-  it(
-    "deve informar erro para template desconhecido",
-    { todo: "BUG: switch sem default em cli.js ignora silenciosamente comandos inválidos" },
-    async () => {
-      const errorSpy = mock.method(console, "error", () => {});
-      try {
-        await cli(argv("inexistente")).catch(() => {});
-        assert.ok(errorSpy.mock.calls.length > 0 || logSpy.mock.calls.length > 0);
-      } finally {
-        errorSpy.mock.restore();
-      }
-    }
-  );
+  it("deve informar erro para template desconhecido", async () => {
+    let rejectedError;
+    await cli(argv("inexistente")).catch((err) => { rejectedError = err; });
+    assert.ok(rejectedError instanceof Error);
+    assert.match(rejectedError.message, /Comando desconhecido/);
+  });
 });
 
 describe("[cli] promptForMissingOptions interativo", () => {
@@ -145,7 +140,7 @@ describe("[cli] promptForMissingOptions interativo", () => {
     assert.equal(config.default, "start");
     assert.deepEqual(
       config.choices.map((c) => c.value),
-      ["new", "start", "run-ios", "run-android", "codepush", "create"]
+      ["start", "run-ios", "run-android", "codepush", "create"]
     );
   });
 
@@ -177,12 +172,61 @@ describe("[cli] promptForMissingOptions interativo", () => {
     await assert.rejects(promptForMissingOptions({}), { name: "ExitPromptError" });
   });
 
-  it("deve oferecer a opção new que não tem handler (comportamento atual)", async () => {
+  it("não deve incluir 'new' nas opções do menu interativo", async () => {
     restoreTTY();
     restoreTTY = setTTY(true);
-    select.mock.mockImplementation(async () => "new");
-    const result = await cli(argv());
-    assert.equal(result, undefined);
-    assert.equal(shell.commands().length, 0);
+    select.mock.mockImplementation(async () => "start");
+    await promptForMissingOptions({ source: "theme" });
+    const [config] = select.mock.calls[0].arguments;
+    const values = config.choices.map((c) => c.value);
+    assert.ok(!values.includes("new"), `"new" não deve estar no menu: ${values.join(", ")}`);
+  });
+
+  it("deve aceitar comando válido selecionado pelo prompt quando new não está no menu", async () => {
+    restoreTTY();
+    restoreTTY = setTTY(true);
+    select.mock.mockImplementation(async () => "codepush");
+    await cli(argv("--source", "root"));
+    assert.match(shell.commands()[0], /codepush deploy/);
+  });
+
+  it("A4: --help curto-circuita antes do prompt com TTY=true (select 0 chamadas)", async () => {
+    restoreTTY();
+    restoreTTY = setTTY(true);
+    select.mock.mockImplementation(async () => {
+      throw new Error("select não deve ser chamado");
+    });
+    await cli(argv("--help"));
+    assert.equal(select.mock.calls.length, 0);
+  });
+
+  it("A4: --version curto-circuita antes do prompt com TTY=true (select 0 chamadas)", async () => {
+    restoreTTY();
+    restoreTTY = setTTY(true);
+    select.mock.mockImplementation(async () => {
+      throw new Error("select não deve ser chamado");
+    });
+    await cli(argv("--version"));
+    assert.equal(select.mock.calls.length, 0);
+  });
+
+  it("A4: 'help' como comando curto-circuita antes do prompt com TTY=true (select 0 chamadas)", async () => {
+    restoreTTY();
+    restoreTTY = setTTY(true);
+    select.mock.mockImplementation(async () => {
+      throw new Error("select não deve ser chamado");
+    });
+    await cli(argv("help"));
+    assert.equal(select.mock.calls.length, 0);
+  });
+
+  it("A4: -h curto-circuita antes do prompt com TTY=true (select 0 chamadas)", async () => {
+    restoreTTY();
+    restoreTTY = setTTY(true);
+    select.mock.mockImplementation(async () => {
+      throw new Error("select não deve ser chamado");
+    });
+    await cli(argv("-h"));
+    assert.equal(select.mock.calls.length, 0);
   });
 });

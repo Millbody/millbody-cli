@@ -157,11 +157,11 @@ parse (arg spec + --help/-h/--version/-v)        → pode lançar erro de flag d
   - Decisão: `package.json` tem `"files": ["bin", "src"]`. O npm inclui `README.md` automaticamente em todos os pacotes, independente do campo `files`. Nenhuma alteração necessária.
 
 ### Fase 4: Testes (test-engineer)
-- [ ] T4.1: [MEDIUM] Testes unitários de `help.js`/`registry.js`: render geral/por comando, resolução de alias, versão, comando desconhecido.
-- [ ] T4.2: [MEDIUM] Teste de consistência: todo `name` do registry aparece no `README.md`.
-- [ ] T4.3: [MEDIUM] Atualizar `cli.test.js`/`cli.integration.test.js` para novo comportamento (help/version sem prompt; comando desconhecido com mensagem; menu sem `new`). Manter intactos os `todo` dos bugs fora de escopo.
-- [ ] T4.4: [MEDIUM] Novos testes de `bin.test.js` (processo filho, pasta vazia): `--help` exit 0; `create --help` exit 0; `--version` exit 0; `--xyz` exit 1; comando inexistente exit 1. Nunca chegar a exec real.
-- [ ] T4.5: [LOW] Garantir `npm test` e `test:coverage` (90/85/90) verdes.
+- [x] T4.1: [MEDIUM] Testes unitários de `help.js`/`registry.js`: render geral/por comando, resolução de alias, versão, comando desconhecido.
+- [x] T4.2: [MEDIUM] Teste de consistência: todo `name` do registry aparece no `README.md`.
+- [x] T4.3: [MEDIUM] Atualizar `cli.test.js`/`cli.integration.test.js` para novo comportamento (help/version sem prompt; comando desconhecido com mensagem; menu sem `new`). Manter intactos os `todo` dos bugs fora de escopo.
+- [x] T4.4: [MEDIUM] Novos testes de `bin.test.js` (processo filho, pasta vazia): `--help` exit 0; `create --help` exit 0; `--version` exit 0; `--xyz` exit 1; comando inexistente exit 1. Nunca chegar a exec real.
+- [x] T4.5: [LOW] Garantir `npm test` e `test:coverage` (90/85/90) verdes.
 
 ### Fase 5: QA (qa-reviewer) → veredito ao orchestrator
 
