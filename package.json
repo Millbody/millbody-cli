@@ -2,16 +2,23 @@
   "name": "@millbody/millbody-cli",
   "version": "1.0.95",
   "description": "Um CLI para projetos usando o framework gym.Millbody",
-  "main": "src/index.js",
+  "main": "src/cli.js",
   "type": "module",
   "bin": {
     "millbody": "bin/millbody"
   },
+  "files": [
+    "bin",
+    "src"
+  ],
   "publishConfig": {
     "access": "public"
   },
+  "engines": {
+    "node": ">=23"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/"
   },
   "keywords": [
     "cli",
@@ -24,16 +31,9 @@
   "dependencies": {
     "@inquirer/prompts": "^5.3.8",
     "arg": "^4.1.2",
-    "axios": "^1.7.5",
-    "inquirer": "^10.1.8",
-    "node-fetch": "^2.6.1",
-    "strip-ansi": "^7.1.0",
     "ttab": "^0.7.1"
   },
   "devDependencies": {
     "eslint": "^9.9.1"
-  },
-  "resolutions": {
-    "@inquirer/core/wrap-ansi": "^8.0.1"
   }
 }
