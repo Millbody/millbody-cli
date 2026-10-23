@@ -9,19 +9,9 @@ CLI para projetos que usam o framework **gym.Millbody**. Automatiza tarefas de d
 - **Node.js** >= 23 (definido em `.nvmrc`; use `nvm use` para selecionar a versão correta)
 - **npm** ou **yarn**
 
-Dependendo dos comandos usados, as seguintes ferramentas externas devem estar instaladas e no `PATH`:
+Na instalação global (`npm install -g`), o CLI detecta e instala automaticamente as dependências externas necessárias via `millbody setup`. Para pular a instalação automática, use `MILLBODY_SKIP_SETUP=1` ou `npm install -g --ignore-scripts`.
 
-| Ferramenta | Usada por |
-|------------|-----------|
-| `git` | `create`, `update-apk` |
-| `fastlane` | `create`, `update-apk` |
-| `ttab` | `create`, `update-apk` |
-| `xed` (Xcode CLI) | `create`, `update-apk` |
-| `xcodebuild` / Xcode | `run-ios` |
-| `gradle` (via `./gradlew`) | `run-android`, `build-android`, `test`, `create`, `update-apk` |
-| `react-native` (CLI global) | `start`, `run-ios`, `run-android`, `test` |
-| `npx` | `start` (source=root) |
-| `millbodyapp.config.js` | `create`, `update-apk` (arquivo na raiz do projeto) |
+As ferramentas necessárias variam por arquitetura e comando — use `millbody doctor` para verificar e `millbody setup` para instalar as que faltarem.
 
 ---
 
@@ -33,6 +23,17 @@ Dependendo dos comandos usados, as seguintes ferramentas externas devem estar in
 npm install -g @millbody/millbody-cli
 # ou
 yarn global add @millbody/millbody-cli
+```
+
+O postinstall detecta a arquitetura do projeto e instala automaticamente as dependências externas faltantes (git, Homebrew, yarn, watchman, CocoaPods, JDK 17, fastlane) via `brew`, `corepack` ou `gem`. A instalação é **best-effort**: se falhar, o CLI ainda fica disponível. Ferramentas que exigem interação manual (Xcode, Android SDK, Homebrew) são apenas orientadas.
+
+Para pular a instalação automática:
+```bash
+# Variável de ambiente
+MILLBODY_SKIP_SETUP=1 npm install -g @millbody/millbody-cli
+
+# Flag npm
+npm install -g --ignore-scripts @millbody/millbody-cli
 ```
 
 ### Local / npx
@@ -57,6 +58,40 @@ millbody start --source root
 
 # Criar setup completo para uma nova conta
 millbody create --account minha-conta
+```
+
+---
+
+## Arquiteturas suportadas
+
+O CLI suporta dois modos de projeto com detecção automática:
+
+### Arquitetura `legacy`
+
+Projetos React Native clássicos gerenciados pelo framework gym.Millbody:
+- Detectado por: presença de `mbCore/` **ou** `millbodyApp.json`
+- Comandos: `start`, `test`, `run-ios`, `run-android`, `build-android`, `codepush`, `create`, `update-apk`
+- Ferramentas: react-native CLI, fastlane, git, ttab, Xcode, Android SDK
+
+### Arquitetura `expo`
+
+Projetos usando o repositório `app-mobile` (Expo SDK ~57, RN 0.86, Yarn 1.x):
+- Detectado por: presença de `millbody.json` **e** (`app.config.ts` ou `app.json` com chave `expo` ou `expo` em `package.json`)
+- Comandos: `start`, `run-ios`, `run-android`, `build-android`, `build-ios`, `web`, `connect-alderaan`, `create`, `update-apk`
+- Ferramentas: yarn, watchman, CocoaPods, JDK 17, Xcode, Android SDK
+
+### Regras de detecção
+
+1. `--arch <expo|legacy>` — força a arquitetura (bypassa detecção)
+2. Marcadores expo presentes → `expo`
+3. Marcadores legacy presentes → `legacy`
+4. Ambos presentes → `expo` (registrado como ambíguo; use `--arch` para forçar)
+5. Nenhum marcador → erro (especifique `--arch` ou navegue para o projeto correto)
+
+```bash
+# Forçar arquitetura
+millbody doctor --arch expo --project ./app-mobile
+millbody setup --arch legacy --project ./meu-projeto-legacy
 ```
 
 ---
@@ -282,6 +317,97 @@ millbody update-apk --account minha-conta --track prod
 
 ---
 
+### millbody build-ios
+
+Executa o pipeline de build iOS do app-mobile via `yarn predeploy:ios`. **Disponível somente no modo expo.**
+
+**Flags:**
+- `--arch <expo|legacy>` — força a arquitetura (obrigatório para este comando)
+- `--project, -p <caminho>` — diretório do projeto app-mobile
+
+**Comandos externos executados:**
+- `yarn predeploy:ios` (clean + install + compile + millbody + prebuild + `xed ios`)
+
+**Exemplos:**
+```bash
+millbody build-ios --arch expo --project ./app-mobile
+```
+
+---
+
+### millbody web
+
+Inicia o servidor Expo para a plataforma web via `yarn web`. **Disponível somente no modo expo.**
+
+**Flags:**
+- `--arch <expo|legacy>` — força a arquitetura
+- `--project, -p <caminho>` — diretório do projeto app-mobile
+
+**Comandos externos executados:**
+- `yarn web`
+
+**Exemplos:**
+```bash
+millbody web --arch expo --project ./app-mobile
+```
+
+---
+
+### millbody connect-alderaan
+
+Atualiza `millbody.json` a partir da API Alderaan sem disparar o pipeline completo de rebuild. Operação idempotente. **Disponível somente no modo expo.**
+
+**Flags:**
+- `--arch <expo|legacy>` — força a arquitetura
+- `--project, -p <caminho>` — diretório do projeto app-mobile
+
+**Comandos externos executados:**
+- `yarn connect-alderaan`
+
+**Exemplos:**
+```bash
+millbody connect-alderaan --arch expo --project ./app-mobile
+```
+
+---
+
+### millbody doctor
+
+Verifica os requisitos externos para a arquitetura detectada (ou forçada). Somente leitura — não instala nada. Exibe tabela ✓/✗ com instrução de correção para cada item. Sai com código 1 se faltar algum requisito obrigatório.
+
+**Flags:**
+- `--arch <expo|legacy>` — força a arquitetura a verificar
+- `--project, -p <caminho>` — diretório do projeto (padrão: diretório atual)
+
+**Exemplos:**
+```bash
+millbody doctor
+millbody doctor --arch expo --project ./app-mobile
+millbody doctor --arch legacy
+```
+
+---
+
+### millbody setup
+
+Detecta requisitos faltantes e instala automaticamente os que suportam instalação automática (via `brew`, `corepack` ou `gem`). Solicita confirmação antes de instalar. Com `--dry-run` apenas exibe o plano sem instalar.
+
+**Flags:**
+- `--arch <expo|legacy>` — força a arquitetura a configurar
+- `--project, -p <caminho>` — diretório do projeto (padrão: diretório atual)
+- `--yes, -y` — confirma a instalação sem aguardar input do usuário
+- `--dry-run` — exibe o plano de instalação sem executar nada
+
+**Exemplos:**
+```bash
+millbody setup
+millbody setup --dry-run
+millbody setup --yes
+millbody setup --arch expo --project ./app-mobile
+```
+
+---
+
 ## Tutoriais passo a passo
 
 ### Nova conta com `create`
@@ -340,15 +466,50 @@ millbody build-android
 millbody build-android --source root
 ```
 
+### Fluxo completo com app-mobile (expo)
+
+```bash
+# 1. Verificar requisitos
+millbody doctor --arch expo --project ./app-mobile
+
+# 2. Instalar o que faltar (opcional — postinstall já faz isso na instalação global)
+millbody setup --arch expo --project ./app-mobile
+
+# 3. Criar configuração para nova conta
+millbody create --account minha-conta --arch expo --project ./app-mobile
+
+# 4. Rodar no iOS
+millbody run-ios --arch expo --project ./app-mobile
+
+# 5. Rodar no Android
+millbody run-android --arch expo --project ./app-mobile
+
+# 6. Atualizar app existente (pipeline completo)
+millbody update-apk --arch expo --project ./app-mobile
+
+# 7. Build iOS para release
+millbody build-ios --arch expo --project ./app-mobile
+
+# 8. Build Android para release
+millbody build-android --arch expo --project ./app-mobile
+
+# 9. Atualizar apenas a configuração Alderaan (sem rebuild completo)
+millbody connect-alderaan --arch expo --project ./app-mobile
+```
+
 ---
 
 ## Opções globais
 
 | Opção | Alias | Descrição |
 |-------|-------|-----------|
-| `--source <theme\|root>` | `-s` | Tipo de pasta do projeto (padrão: `theme`) |
+| `--arch <expo\|legacy>` | — | Força a arquitetura do projeto (bypassa detecção) |
+| `--project <caminho>` | `-p` | Diretório do projeto (padrão: diretório atual) |
+| `--source <theme\|root>` | `-s` | Tipo de pasta do projeto legado (padrão: `theme`) |
 | `--account <conta>` | `-a` | Identificador da conta na API Millbody |
 | `--track <prod\|beta>` | `-t` | Faixa de publicação para `fastlane` |
+| `--yes` | `-y` | Confirma prompts interativos sem aguardar input |
+| `--dry-run` | — | Exibe o plano sem executar nada (`setup`) |
 | `--help` | `-h` | Exibe a ajuda geral ou do comando |
 | `--version` | `-v` | Exibe a versão instalada |
 
