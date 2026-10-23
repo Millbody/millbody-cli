@@ -292,3 +292,20 @@ export async function run({ env, platform, pkgDir, runSetup, log }) -> void  // 
 
 ### Aceitação manual registrada
 CA02/CA03 dependem de `../../../app-mobile` (fora do repo) — são verificações MANUAIS do orchestrator (doctor read-only pode rodar de verdade; setup só `--dry-run`). Não viram teste automatizado que toque o sistema.
+
+---
+
+## 🚨 Correção pós-verificação independente (REPROVADA) — Ciclo 2
+
+Verificação comportamental (fixture expo real + `yarn` falso no PATH) REPROVOU a entrega. Reproduzido:
+- `millbody start|run-ios --project <fixture-expo>` → erro legado "A pasta não corresponde a um TEMA MILLBODY" (roteamento por arquitetura NÃO existe).
+- `millbody create --account demo --project <fixture>` → erro legado "Esse projeto não corresponde ao framework MILLBODY APP".
+- `millbody web --project <fixture>/proj` → rodou `yarn web` com cwd = diretório atual (NÃO o projeto) → `--project` ignorado (projectDir nunca preenchido; parse expõe `options.project`, handler expo lê `options.projectDir`).
+
+### Correções obrigatórias (REJECTED_CODE)
+- [x] **F1 (CRÍTICO) — Roteamento real por arquitetura no `cli.js`.** Resolver `{arch, projectDir}` UMA vez (via `resolveArch({archFlag: options.arch, projectDir: options.project})`) para comandos não-informacionais e despachar: `arch==="expo"` → handler expo (inclui unsupported p/ codepush/test); senão → handler legado INALTERADO. doctor/setup continuam utilitários (resolvem internamente). Preservar D2: quando `--project` ausente E diretório não é expo (ou detecção falha), cair no legado EXATAMENTE como hoje (fallback arch="legacy", sem throw) — os testes de regressão legada e os 9 todo devem continuar.
+- [x] **F2 (CRÍTICO) — `--project` efetivo.** `projectDir = path.resolve(options.project ?? cwd)` preenchido em `options.projectDir` e passado a TODOS os handlers. Expo: cwd do spawn = projectDir. Legado: quando `--project` é passado, `process.chdir(projectDir)` antes do handler legado (decisão: legado é cwd-based; chdir explícito e TESTADO); quando ausente, comportamento idêntico ao atual.
+- [x] **F3 — registry `archs`.** `start` deve ser `[legacy+expo]` (há `start→start` em EXPO_COMMAND_MAP). Revisar todos os `archs` contra EXPO_COMMAND_MAP (teste de completude deve pegar divergências).
+- [x] **F4 (postinstall global) — detecção de instalação global robusta.** Não gatear só por `npm_config_global==="true"`. Rodar quando NÃO for dev-install deste repo (INIT_CWD===pkgDir) E NÃO for dependência local de outro projeto (pkgDir dentro de `<INIT_CWD>/node_modules`); caso contrário rodar. Testar com env simulado para npm, yarn 1 (`yarn global add`) e pnpm (`pnpm add -g`). Manter sempre exit 0 e demais skips (SKIP/CI/non-darwin/root).
+- [x] **F5 — "No comments in code".** Remover todos os comentários `//` dos arquivos desta tarefa (ex.: `scripts/postinstall.js` linhas de comentário).
+- **F6 (testes) — e2e comportamental.** Testes de integração via `bin/millbody` em processo filho, fixtures expo/legacy em `mkdtemp`, `PATH` contendo SOMENTE um dir temporário com shims falsos (yarn/git/npx/react-native/pod/adb que só registram argv+cwd) + o dir do node (nunca binários reais). Asserir: comando/script chamado e cwd === projeto para cada comando compartilhado e exclusivo do expo; fluxo legado inalterado. Reexecutar qa-reviewer exigindo verificação comportamental (não só unit).
