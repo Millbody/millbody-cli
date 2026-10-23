@@ -18,6 +18,8 @@ const srcModules = [
   "../src/commands/runIos.js",
   "../src/commands/create.js",
   "../src/commands/updateApk.js",
+  "../src/commands/registry.js",
+  "../src/help.js",
 ];
 
 const allJsFiles = [
@@ -31,6 +33,8 @@ const allJsFiles = [
   "src/commands/runIos.js",
   "src/commands/create.js",
   "src/commands/updateApk.js",
+  "src/commands/registry.js",
+  "src/help.js",
   "src/cli.js",
   "bin/millbody",
 ];
@@ -105,8 +109,8 @@ describe("[smoke] bin/millbody — comando inexistente", () => {
     );
     assert.strictEqual(
       result.code,
-      0,
-      `exit code deve ser 0 para comando inexistente, recebeu ${result.code}`
+      1,
+      `exit code deve ser 1 para comando inexistente, recebeu ${result.code}`
     );
   });
 });
