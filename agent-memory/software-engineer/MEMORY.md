@@ -63,8 +63,9 @@ Esse conflito precisa ser escalado ao usuário/orchestrator quando o qa-reviewer
 - Detecção D5: `detectArchitecture` retorna `{arch, reason, ambiguous}`; fail-safe (try/catch em leituras); precedência `--arch` > expo > legacy > null
 - Postinstall D3: skip em MILLBODY_SKIP_SETUP/CI vars/non-darwin/npm_config_global!=="true"/INIT_CWD===pkgDir/root uid 0
 - Registry: campo `archs` por comando; novos comandos: `build-ios` (expo-only), `web` (expo-only), `connect-alderaan` (expo-only), `doctor` (ambas), `setup` (ambas)
+- Registry dividido em sub-módulos (cada <300 linhas): `src/commands/registry/legacy.js` (start,test,codepush), `src/commands/registry/expo.js` (build-ios,web,connect-alderaan), `src/commands/registry/shared.js` (run-ios,run-android,build-android,create,update-apk,doctor,setup); `src/commands/registry.js` é agregador fino que mantém MESMA ORDEM do array original
 - Consistência README↔registry: teste em `test/help-consistency.test.js` verifica `### millbody <name>` e flags por comando — manter sincronizados
-- Estado atual de testes: 240 total, 231 pass, 0 fail, 9 todo (todos `# BUG` legados fora de escopo)
+- Estado atual de testes: 355 total, 346 pass, 0 fail, 9 todo (todos `# BUG` legados fora de escopo); cobertura 97.80/94.53/91.23 >= gate 90/85/90
 
 ## Observações
 
