@@ -44,9 +44,8 @@ describe("[postinstall] shouldSkip — table-driven", () => {
     ["GITHUB_ACTIONS", base({ GITHUB_ACTIONS: "true", INIT_CWD: otherDir }), DARWIN, /CI/],
     ["CONTINUOUS_INTEGRATION", base({ CONTINUOUS_INTEGRATION: "1", INIT_CWD: otherDir }), DARWIN, /CI/],
     ["plataforma linux", base({ INIT_CWD: otherDir }), "linux", /plataforma não suportada/],
-    ["não global", { INIT_CWD: otherDir }, DARWIN, /não é instalação global/],
     ["dev install (INIT_CWD === pkgDir)", base({ INIT_CWD: pkgDir }), DARWIN, /desenvolvimento/],
-    ["INIT_CWD irresolvível", base({ INIT_CWD: "/nao/existe/xyz-123" }), DARWIN, /não foi possível verificar/],
+    ["INIT_CWD irresolvível", base({ INIT_CWD: "/nao/existe/xyz-123" }), DARWIN, /desenvolvimento/],
   ];
 
   for (const [label, env, platform, expected] of skipCases) {
@@ -56,9 +55,27 @@ describe("[postinstall] shouldSkip — table-driven", () => {
     });
   }
 
-  it("CI=false não aciona skip por CI (cai para checagem global)", () => {
+  it("pula quando pkgDir está dentro de node_modules do INIT_CWD (dependência local)", () => {
+    const projectRoot = makeDir(persistent);
+    const fakeNodeModules = path.join(projectRoot, "node_modules", "millbody-cli");
+    fs.mkdirSync(fakeNodeModules, { recursive: true });
+    const reason = shouldSkip(base({ INIT_CWD: projectRoot }), DARWIN, fakeNodeModules);
+    assert.match(reason, /desenvolvimento/);
+  });
+
+  it("CI=false não aciona skip por CI (continua verificação de dev-install)", () => {
     const reason = shouldSkip({ CI: "false", INIT_CWD: otherDir }, DARWIN, pkgDir);
-    assert.match(reason, /não é instalação global/);
+    assert.equal(reason, null);
+  });
+
+  it("roda sem npm_config_global (yarn global add, pnpm global add)", () => {
+    const getuidSpy = mock.method(process, "getuid", () => 501);
+    try {
+      const reason = shouldSkip({ INIT_CWD: otherDir }, DARWIN, pkgDir);
+      assert.equal(reason, null);
+    } finally {
+      getuidSpy.mock.restore();
+    }
   });
 
   it("pula quando rodando como root (uid 0)", () => {
@@ -71,7 +88,7 @@ describe("[postinstall] shouldSkip — table-driven", () => {
     }
   });
 
-  it("retorna null quando é instalação global legítima", () => {
+  it("retorna null quando é instalação global legítima (npm)", () => {
     const getuidSpy = mock.method(process, "getuid", () => 501);
     try {
       const reason = shouldSkip(base({ INIT_CWD: otherDir }), DARWIN, pkgDir);

@@ -289,13 +289,20 @@ describe("[cli] parseArgumentsIntoOptions — flags informacionais", () => {
 
 describe("[A2] paridade registry <-> defaultHandlers (cli.test.js)", () => {
   it("nomes + aliases do registry devem cobrir exatamente as chaves do defaultHandlers", () => {
-    const fromRegistry = new Set(commands.flatMap((c) => [c.name, ...c.aliases]));
+    const legacyRegistryKeys = new Set(
+      commands
+        .filter((c) => c.archs && c.archs.includes("legacy"))
+        .flatMap((c) => [c.name, ...c.aliases])
+    );
     const fromHandlers = new Set(Object.keys(defaultHandlers));
-    for (const key of fromRegistry) {
-      assert.ok(fromHandlers.has(key), `"${key}" do registry não tem handler`);
+    for (const key of legacyRegistryKeys) {
+      assert.ok(fromHandlers.has(key), `"${key}" do registry (legacy) não tem handler em defaultHandlers`);
     }
     for (const key of fromHandlers) {
-      assert.ok(fromRegistry.has(key), `"${key}" do defaultHandlers não está no registry`);
+      const inRegistry = commands.some(
+        (c) => c.name === key || c.aliases.includes(key)
+      );
+      assert.ok(inRegistry, `"${key}" do defaultHandlers não está no registry`);
     }
   });
 });

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import path from "node:path";
 import arg from "arg";
 import { select } from "@inquirer/prompts";
 
@@ -14,6 +15,7 @@ import updateApk from "./commands/updateApk.js";
 import executeDoctor from "./commands/doctor.js";
 import executeSetup from "./commands/setup.js";
 import { makeExpoHandlers } from "./arch/expoCommands.js";
+import { resolveArch } from "./arch/detect.js";
 import commands from "./commands/registry.js";
 import {
   getVersion,
@@ -22,8 +24,6 @@ import {
   renderUnknownCommand,
   resolveInformational,
 } from "./help.js";
-
-const expoOnlyHandlers = makeExpoHandlers();
 
 export const defaultHandlers = {
   test: (options) => executeTest(options),
@@ -37,9 +37,6 @@ export const defaultHandlers = {
   updateapp: (options) => updateApk(options),
   doctor: (options) => executeDoctor(options),
   setup: (options) => executeSetup(options),
-  "build-ios": (options) => expoOnlyHandlers["build-ios"](options),
-  web: (options) => expoOnlyHandlers["web"](options),
-  "connect-alderaan": (options) => expoOnlyHandlers["connect-alderaan"](options),
 };
 
 export function parseArgumentsIntoOptions(rawArgs) {
@@ -124,7 +121,33 @@ export async function promptForMissingOptions(options) {
   return { ...options, template };
 }
 
-export async function cli(args, handlers = defaultHandlers) {
+function resolveProjectArch(options, resolveArchFn) {
+  const hasExplicitProject = options.project !== undefined;
+  const hasExplicitArch = options.arch !== undefined;
+
+  let arch = "legacy";
+  let projectDir = path.resolve(options.project ?? process.cwd());
+
+  try {
+    const resolved = resolveArchFn({ archFlag: options.arch, projectDir: options.project });
+    arch = resolved.arch;
+    projectDir = resolved.projectDir;
+  } catch (err) {
+    if (hasExplicitProject || hasExplicitArch) {
+      throw err;
+    }
+    arch = "legacy";
+    projectDir = path.resolve(process.cwd());
+  }
+
+  return { arch, projectDir };
+}
+
+export async function cli(
+  args,
+  handlers = defaultHandlers,
+  { resolveArch: resolveArchFn = resolveArch, expoHandlers = makeExpoHandlers() } = {}
+) {
   let options = parseArgumentsIntoOptions(args);
 
   const informational = resolveInformational(options);
@@ -147,10 +170,25 @@ export async function cli(args, handlers = defaultHandlers) {
   options = await promptForMissingOptions(options);
   const { template } = options;
 
+  const { arch, projectDir } = resolveProjectArch(options, resolveArchFn);
+  options = { ...options, projectDir };
+
+  if (arch === "expo" && Object.hasOwn(expoHandlers, template)) {
+    const result = await expoHandlers[template](options);
+    if (typeof result === "number") {
+      process.exitCode = result;
+    }
+    return result;
+  }
+
   if (!Object.hasOwn(handlers, template)) {
     throw new Error(
       `${renderUnknownCommand(template, commands)}`
     );
+  }
+
+  if (options.project) {
+    process.chdir(projectDir);
   }
 
   const result = await handlers[template](options);

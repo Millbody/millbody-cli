@@ -2,7 +2,7 @@ const legacyCommands = [
   {
     name: "start",
     aliases: [],
-    archs: ["legacy"],
+    archs: ["legacy", "expo"],
     summary: "Sobe o Metro/React Native bundler",
     usage: "millbody start [--source theme|root]",
     description:
