@@ -10,9 +10,9 @@
 
 ## Problemas Recorrentes
 
-- **Commit message hygiene (CRÍTICO, RECORRENTE):** TODOS os commits no branch node23-upgrade contêm `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` ou `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`. Na re-revisão da task cli-help-readme (2026-10-23), o grep retornou 20 commits. O orchestrator informou que o usuário explicitamente EXIGIU este formato E PROIBIU reescrita de histórico ("NÃO reescreva histórico"). Este é um conflito de política (regra QA vs. instrução explícita do usuário) que o orchestrator deve escalar para o usuário resolver.
+- **Commit message hygiene (CRÍTICO, RECORRENTE):** TODOS os commits no branch node23-upgrade contêm `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` ou `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`. Nas revisões de cli-help-readme (2026-10-23) o grep retornou 20 commits; na revisão de dual-arch-setup (Fase 7) o grep retornou 30 commits. O orchestrator informou que o usuário explicitamente EXIGIU este formato E PROIBIU reescrita de histórico ("NÃO reescreva histórico"). Este é um conflito de política (regra QA vs. instrução explícita do usuário) que o orchestrator deve escalar para o usuário resolver.
 - **file_size_analyzer.py ausente:** O projeto não tem `.agents/tools/file_size_analyzer.py`. Usar `grep -v '^\s*$' <file> | wc -l` para contar linhas efetivas.
-- **test/help.test.js excede 300 linhas (HISTÓRICO):** Foi dividido em registry.test.js (93 ef.), help-render.test.js (195 ef.), help-consistency.test.js (49 ef.) — RESOLVIDO na re-revisão.
+- **src/commands/registry.js excede 300 linhas:** Na task cli-help-readme era 273 linhas (OK). Na task dual-arch-setup (Fase 4), o software-engineer adicionou comandos doctor/setup/connect-alderaan/web e o arquivo cresceu para 446 linhas efetivas — VIOLAÇÃO. Deve ser refatorado pelo @software-engineer (SRP: separar descritores por família ou por arquivo de subregistro).
 
 ## Critérios de Rejeição
 
@@ -20,6 +20,7 @@
   - Fix canônico: `git filter-branch -f --msg-filter 'grep -v -i -E "^(Co-Authored-By: Claude|Co-Authored-By:.*anthropic)"' origin/master..HEAD`
   - EXCEPÇÃO NESTE PROJETO: o usuário exigiu o trailer E proibiu reescrita. O orchestrator deve escalar para decisão do usuário antes de bloquear.
 - REJECTED_CODE (file size): Arquivos com > 300 linhas efetivas devem ser refatorados pelo @software-engineer
+  - registry.js (446 linhas) — violação ativa; split sugerido: `src/commands/registry/legacy.js` + `src/commands/registry/expo.js` + `src/commands/registry/shared.js` + `src/commands/registry/index.js`
 - Note: Os 9 testes `todo` são corretos — documentam bugs de produção conhecidos fora do escopo deste branch
 
 ## Stack & Ferramentas
@@ -28,42 +29,40 @@
 - `mock.module('node:child_process', ...)` para isolamento de exec (experimental, funciona no Node 23)
 - `mock.method(globalThis, 'fetch', ...)` para isolamento de fetch
 - `createSandbox()` em test/helpers/sandbox.js: cria tmpdir, muda cwd, faz cleanup
-- Trivy scan: 0 CRITICAL, 0 HIGH, 0 MEDIUM vulnerabilidades em package-lock.json e yarn.lock (verificado em 2026-10-23, tasks node23-upgrade e cli-help-readme)
+- Trivy scan: 0 CRITICAL, 0 HIGH, 0 MEDIUM em package-lock.json e yarn.lock (verificado em 2026-10-23 em múltiplas tarefas)
 - SonarQube: não configurado (variáveis SONARQUBE_URL/TOKEN ausentes)
 
 ## Observações
 
 - O mecanismo `todo` do `node:test` faz testes "falhos" aparecerem no output mas exit code permanece 0 — comportamento esperado
 - bin/millbody branch 66.67% é o fallback `?.` opcional — aceitável, documentado
-- Coverage reportada apenas para `functions.js` no relatório inline; não reflete cobertura dos novos arquivos (help.js, cli.js) — isso é uma limitação do modo de cobertura do node:test quando os arquivos são importados indiretamente
 - Não há Dockerfile, docker-compose, Terraform ou Kubernetes — scan de configuração IaC não necessário
-- Quando a cobertura aparece apenas para `functions.js`, isso é porque `--experimental-coverage` cobre apenas o primeiro arquivo importado no modo de entrada; testes bin.test.js (processo filho) não contribuem para cobertura
+- Invariante seam child_process: `src/arch/proc.js` é o único módulo novo que importa `node:child_process`. `src/functions.js` (legado) mantém `import {exec}` direto — exceção documentada fora do invariante.
+- postinstall.js: cobertura de funcs baixa (42.86%) reflete que o entry point (`#!/usr/bin/env node` + chamada principal) fica fora da cobertura por design (só a lógica pura é testada). Aceitável — aggregate fica acima do threshold.
+- cli.js: funcs 73.68% — handlers não-alcançados sob teste (e.g., some TTY paths). Aceitável no aggregate.
 
-## Task cli-help-readme — Re-Revisão (2026-10-23)
+## Task dual-arch-setup Fase 7 — Revisão de Testes (2026-10-23)
 
-### Implementação (Qualidade Técnica)
-- src/commands/registry.js: 273 efetivas — OK
-- src/help.js: 115 efetivas — OK
-- src/cli.js: 117 efetivas — OK
-- test/registry.test.js: 93 efetivas — OK (divisão do antigo help.test.js)
-- test/help-render.test.js: 195 efetivas — OK (divisão do antigo help.test.js)
-- test/help-consistency.test.js: 49 efetivas — OK (divisão do antigo help.test.js)
-- test/cli.test.js: 262 efetivas — OK
-- test/cli.integration.test.js: 206 efetivas — OK
-- test/bin.test.js: 140 efetivas — OK
-- test/smoke.test.js: 122 efetivas — OK
+### Qualidade dos Testes (T7.1–T7.8)
+- Todos os 10 novos arquivos de teste abaixo de 300 linhas efetivas (máx: 172 em arch.expoCommands.test.js)
+- Nenhum teste executa processo externo real (spawn/execFile todos injetados)
+- Seam invariant test: test/consistency.archs.test.js verifica estaticamente que só src/arch/proc.js importa child_process
+- T7.8 (regressão): doctor/setup via bin real não automatizados — decisão correta (detectores reais spawnariam java/xcode-select)
+- Fixtures: tmpdir + world.js; mocks restaurados via afterEach
 
 ### Resultado dos Testes
-- 213 pass, 0 fail, 9 todo (bugs pré-existentes fora de escopo)
-- Trivy: 0 CRITICAL, 0 HIGH, 0 MEDIUM
+- 355 total, 346 pass, 0 fail, 9 todo (bugs pré-existentes fora de escopo), exit 0
+- Coverage: 97.77% lines / 94.50% branches / 91.23% funcs (gates: 90/85/90) — PASS
 
 ### Status Gates
-- Build (node --check): PASS
-- File size: PASS (todos < 300 linhas efetivas)
-- Tests: PASS (213/0/9-todo)
-- Coverage thresholds (90/85/90): PASS
-- Trivy scan: PASS (zero vulnerabilidades)
-- Commit hygiene: CONFLITO — 20 commits com Co-Authored-By: Claude (grep = 20). Usuário explicitamente exigiu este formato e proibiu reescrita de histórico. Requer escalação ao usuário pelo orchestrator.
+- Tests: PASS (355/0/9-todo)
+- Coverage thresholds: PASS (97.77/94.50/91.23)
+- Trivy: PASS (0 CRITICAL, 0 HIGH, 0 MEDIUM)
+- No orphan files: PASS (sem .millbody-postinstall.log)
+- No external processes in tests: PASS
+- File size (testes): PASS (todos < 300 linhas)
+- File size (src/commands/registry.js): FAIL — 446 linhas efetivas (> 300) → REJECTED_CODE
+- Commit hygiene: CONFLITO — 30 commits com Co-Authored-By: Claude. Requer escalação ao usuário.
 
 ## Defects Identificados por Análise Upsidedown (ciclos anteriores)
 
