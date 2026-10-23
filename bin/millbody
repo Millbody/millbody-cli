@@ -1,4 +1,10 @@
 #!/usr/bin/env node
 
 import { cli } from "../src/cli.js";
-cli(process.argv);
+cli(process.argv).catch((err) => {
+  if (err?.name === "ExitPromptError") {
+    process.exit(130);
+  }
+  console.error(err?.message ?? err);
+  process.exitCode = 1;
+});
