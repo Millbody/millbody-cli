@@ -108,9 +108,24 @@ scripts/
 
 ## Testes
 
-- `npm test`: 240 testes, 231 pass, 0 fail, 9 todo (todos os 9 são `# BUG` do legado, fora de escopo)
-- Sem regressão: os 213 pass legados + 9 todo continuam exatamente iguais
-- Consistência README↔registry: 3 testes passando (eram 2 falhas antes desta entrega)
+- `npm test`: **355 testes — 346 pass, 0 fail, 9 todo** (os 9 `# BUG` são bugs legados conhecidos, fora de escopo)
+- `npm run test:coverage`: **97.80% linhas / 94.53% branches / 91.23% funções** (gate 90/85/90 — exit 0)
+- Sem regressão: os 213 pass legados + 9 todo continuam exatamente iguais (regression.legacy.test.js garante que cada comando legado gera os mesmos comandos/mensagens com e sem `--arch`/`--project`)
+- Consistência README↔registry: passando
+- Nenhum teste executa binário externo real (brew/gem/npm/yarn/expo/git/fastlane/kill/keytool). Tudo por injeção de dependência + fakes deny-all em `test/helpers/processFake.js`; `mock.module` só para `@inquirer/prompts`.
+
+### Verificação de Qualidade
+
+| Critério | Status |
+|----------|--------|
+| Build / carga dos módulos | ✓ |
+| `npm test` (0 fail) | ✓ |
+| Cobertura ≥ 90/85/90 | ✓ (97.80/94.53/91.23) |
+| Sem nova injeção de shell (spawn array, shell:false) | ✓ |
+| Sem novas dependências de produção (Trivy 0) | ✓ |
+| Legado inalterado (D2) | ✓ |
+| Arquivos ≤ 300 linhas efetivas | ✓ |
+| CA01 `--help` / CA02 `doctor` / CA03 `setup --dry-run` | ✓ |
 
 ---
 
