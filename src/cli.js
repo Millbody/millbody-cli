@@ -11,6 +11,9 @@ import executeBuildAndroid from "./commands/buildAndroid.js";
 import executeRunIos from "./commands/runIos.js";
 import create from "./commands/create.js";
 import updateApk from "./commands/updateApk.js";
+import executeDoctor from "./commands/doctor.js";
+import executeSetup from "./commands/setup.js";
+import { makeExpoHandlers } from "./arch/expoCommands.js";
 import commands from "./commands/registry.js";
 import {
   getVersion,
@@ -19,6 +22,8 @@ import {
   renderUnknownCommand,
   resolveInformational,
 } from "./help.js";
+
+const expoOnlyHandlers = makeExpoHandlers();
 
 export const defaultHandlers = {
   test: (options) => executeTest(options),
@@ -30,6 +35,11 @@ export const defaultHandlers = {
   create: (options) => create(options),
   "update-apk": (options) => updateApk(options),
   updateapp: (options) => updateApk(options),
+  doctor: (options) => executeDoctor(options),
+  setup: (options) => executeSetup(options),
+  "build-ios": (options) => expoOnlyHandlers["build-ios"](options),
+  web: (options) => expoOnlyHandlers["web"](options),
+  "connect-alderaan": (options) => expoOnlyHandlers["connect-alderaan"](options),
 };
 
 export function parseArgumentsIntoOptions(rawArgs) {
@@ -43,6 +53,12 @@ export function parseArgumentsIntoOptions(rawArgs) {
         "-a": "--account",
         "--track": String,
         "-t": "--track",
+        "--arch": String,
+        "--project": String,
+        "-p": "--project",
+        "--yes": Boolean,
+        "-y": "--yes",
+        "--dry-run": Boolean,
         "--help": Boolean,
         "-h": "--help",
         "--version": Boolean,
@@ -74,6 +90,10 @@ export function parseArgumentsIntoOptions(rawArgs) {
     source: args["--source"] === "root" ? "root" : "theme",
     account: args["--account"],
     track: args["--track"],
+    arch: args["--arch"],
+    project: args["--project"],
+    yes: args["--yes"],
+    dryRun: args["--dry-run"],
     help: hasHelpFlag,
     version: hasVersionFlag,
   };
@@ -133,5 +153,9 @@ export async function cli(args, handlers = defaultHandlers) {
     );
   }
 
-  return handlers[template](options);
+  const result = await handlers[template](options);
+  if (typeof result === "number") {
+    process.exitCode = result;
+  }
+  return result;
 }

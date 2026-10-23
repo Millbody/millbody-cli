@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import commands from "./commands/registry.js";
+import commands, { globalFlags } from "./commands/registry.js";
 
 const packageJsonPath = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -20,6 +20,14 @@ export function findCommand(name, registry = commands) {
   );
 }
 
+function archLabel(archs) {
+  if (!archs || archs.length === 0) return "";
+  if (archs.includes("legacy") && archs.includes("expo")) return "[legacy+expo]";
+  if (archs.includes("expo")) return "[expo]";
+  if (archs.includes("legacy")) return "[legacy]";
+  return "";
+}
+
 export function renderGeneralHelp(registry = commands) {
   const lines = [
     "millbody — CLI para projetos usando o framework gym.Millbody",
@@ -34,19 +42,29 @@ export function renderGeneralHelp(registry = commands) {
   for (const cmd of registry) {
     const aliasText =
       cmd.aliases.length > 0 ? ` (alias: ${cmd.aliases.join(", ")})` : "";
-    lines.push(`  ${cmd.name}${aliasText.padEnd(20 - cmd.name.length)}  ${cmd.summary}`);
+    const arch = archLabel(cmd.archs);
+    const archSuffix = arch ? `  ${arch}` : "";
+    lines.push(`  ${cmd.name}${aliasText.padEnd(20 - cmd.name.length)}  ${cmd.summary}${archSuffix}`);
   }
 
   lines.push(
     "",
     "Opções globais:",
-    "  --source, -s <theme|root>   Tipo de pasta do projeto (padrão: theme)",
-    "  --account, -a <conta>       Identificador da conta na API Millbody",
-    "  --track, -t <prod|beta>     Faixa de publicação (fastlane)",
-    "  --help, -h                  Exibe esta ajuda",
-    "  --version, -v               Exibe a versão instalada",
+  );
+
+  for (const flag of globalFlags) {
+    lines.push(`  ${flag.flags}`);
+    lines.push(`      ${flag.description}`);
+  }
+
+  lines.push(
     "",
-    'Use "millbody help <comando>" para detalhes de um comando específico.'
+    'Use "millbody help <comando>" para detalhes de um comando específico.',
+    "",
+    "Arquiteturas suportadas:",
+    "  legacy  — projeto mbCore/millbodyApp.json (React Native CLI)",
+    "  expo    — projeto app-mobile (Expo SDK 57 / RN 0.86)",
+    "            Detecção automática pelo diretório; use --arch para forçar."
   );
 
   return lines.join("\n");
@@ -67,6 +85,10 @@ export function renderCommandHelp(name, registry = commands) {
 
   if (cmd.aliases.length > 0) {
     lines.push("", `Aliases: ${cmd.aliases.join(", ")}`);
+  }
+
+  if (cmd.archs && cmd.archs.length > 0) {
+    lines.push("", `Arquitetura: ${archLabel(cmd.archs)}`);
   }
 
   lines.push("", "Descrição:", `  ${cmd.description}`);
