@@ -33,4 +33,17 @@
 ## Observações
 - Trabalho feito na worktree `.worktrees/node23-upgrade` (branch `node23-upgrade`). NÃO fazer merge/push/publish sem aprovação explícita do usuário.
 - Resultado da tarefa 001: 46/46 testes, Trivy 0/0, 8 commits. Doc em `docs/001-node23-upgrade.md`.
+- Resultado da tarefa 002 (cli-help-readme): 213 pass/0 fail/9 todo, cobertura 99.78/98.30/100 (limiares 90/85/90), Trivy 0/0. 5 commits. Doc em `docs/002-cli-help-readme.md`. Plano em `tasks/cli-help-readme/plan.md`.
 - Recomendações futuras pendentes: engines `>=23.5.0`+MAJOR bump, injections, executeCommand/spawn, bug lsof, process.exit, consolidar lockfile, eslint config.
+
+## Padrões do Projeto (cont. — tarefa 002)
+- CLI agora tem SSOT de comandos em `src/commands/registry.js` (name, aliases, summary, usage, description, flags, examples, prerequisites, external, sideEffects, interactive). QUALQUER novo comando = 1 descritor no registry + 1 handler em `defaultHandlers` (cli.js). Help, menu e README derivam do registry.
+- `src/help.js`: render puro + `resolveInformational(parsed, registry)` + `getVersion()` (lê `../package.json` via `import.meta.url`, NÃO via cwd). `findCommand` usa `array.find` (NUNCA lookup em objeto — evita prototype pollution com `constructor`/`__proto__`).
+- Roteamento de execução usa `Object.hasOwn(handlers, template)`; `defaultHandlers` é exportado de cli.js para teste de paridade com o registry.
+- README resolvido por `import.meta.url` nos testes (eles fazem `process.chdir` em sandbox).
+
+## Aprendizados de QA (cont.)
+- CONFIRMADO de novo na tarefa 002: o gate de QA reclama dos trailers `Co-Authored-By: Claude...` como "violação" e sugere `git filter-branch`. Quando o trailer é EXIGIDO pelo usuário E a reescrita é PROIBIDA, isso NÃO é defeito — resolver a favor da instrução do usuário e NÃO bloquear. QA já registra esse conflito como "escalar ao orchestrator".
+- IMPORTANTE sobre o pipeline: o `@software-engineer` faz SubagentHandback para o orchestrator ANTES de a cadeia test-engineer→qa-reviewer terminar (só informa "test-engineer delegado"). O VEREDITO do QA NÃO chega como mensagem direta ao orchestrator. Para a decisão da FASE 3, verificar o estado real: `git log`, rodar `npm test`/`test:coverage`, rodar os comandos do CLI, e ler `agent-memory/qa-reviewer/MEMORY.md` (o QA registra lá o resultado dos gates).
+- Limiar de tamanho de arquivo do QA: 300 linhas efetivas. Arquivos de teste grandes devem ser divididos por responsabilidade (ex.: `help.test.js` → registry/help-render/help-consistency).
+- `smoke.test.js` tinha asserção que codificava o bug de exit 0 para comando desconhecido; ao fazer comando desconhecido sair com código 1, esse teste precisou ser atualizado.
