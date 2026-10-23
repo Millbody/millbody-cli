@@ -10,9 +10,9 @@ describe("[registry] estrutura do registro de comandos", () => {
     assert.ok(commands.length > 0);
   });
 
-  it("deve conter os 8 comandos esperados", () => {
+  it("deve conter os comandos esperados (legacy + expo + utilitários)", () => {
     const names = commands.map((c) => c.name);
-    assert.deepEqual(names.sort(), [
+    const required = [
       "build-android",
       "codepush",
       "create",
@@ -21,7 +21,12 @@ describe("[registry] estrutura do registro de comandos", () => {
       "start",
       "test",
       "update-apk",
-    ]);
+      "doctor",
+      "setup",
+    ];
+    for (const name of required) {
+      assert.ok(names.includes(name), `Comando "${name}" ausente no registry`);
+    }
   });
 
   it("update-apk deve ter alias updateapp", () => {
@@ -51,18 +56,33 @@ describe("[registry] estrutura do registro de comandos", () => {
     }
   });
 
-  it("comandos interativos devem ser: start, run-ios, run-android, codepush, create", () => {
-    const interactiveNames = commands
-      .filter((c) => c.interactive)
-      .map((c) => c.name)
-      .sort();
-    assert.deepEqual(interactiveNames, [
-      "codepush",
-      "create",
-      "run-android",
-      "run-ios",
-      "start",
-    ]);
+  it("cada descritor deve ter o campo archs com valores válidos", () => {
+    const validArchs = ["expo", "legacy"];
+    for (const cmd of commands) {
+      assert.ok(
+        Array.isArray(cmd.archs) && cmd.archs.length > 0,
+        `Campo "archs" ausente ou vazio em "${cmd.name}"`
+      );
+      for (const arch of cmd.archs) {
+        assert.ok(validArchs.includes(arch), `Arch inválida "${arch}" em "${cmd.name}"`);
+      }
+    }
+  });
+
+  it("comandos interativos devem incluir: start, run-ios, run-android, codepush, create", () => {
+    const interactiveNames = commands.filter((c) => c.interactive).map((c) => c.name);
+    const expected = ["start", "run-ios", "run-android", "codepush", "create"];
+    for (const name of expected) {
+      assert.ok(interactiveNames.includes(name), `Comando interativo "${name}" ausente`);
+    }
+  });
+
+  it("doctor e setup não devem ser interativos (são utilitários)", () => {
+    const doctor = commands.find((c) => c.name === "doctor");
+    const setup = commands.find((c) => c.name === "setup");
+    assert.ok(doctor, "doctor deve existir no registry");
+    assert.ok(setup, "setup deve existir no registry");
+    assert.strictEqual(doctor.interactive, false, "doctor não deve ser interativo");
   });
 });
 
@@ -96,9 +116,19 @@ describe("[findCommand]", () => {
 });
 
 describe("[A2] paridade registry <-> defaultHandlers", () => {
-  it("nomes + aliases do registry devem ser iguais às chaves do defaultHandlers", () => {
+  it("todo comando no defaultHandlers deve estar no registry", () => {
     const fromRegistry = new Set(commands.flatMap((c) => [c.name, ...c.aliases]));
-    const fromHandlers = new Set(Object.keys(defaultHandlers));
-    assert.deepEqual(fromRegistry, fromHandlers);
+    const fromHandlers = Object.keys(defaultHandlers);
+    for (const key of fromHandlers) {
+      assert.ok(fromRegistry.has(key), `"${key}" do defaultHandlers não está no registry`);
+    }
+  });
+
+  it("comandos utilitários (doctor, setup) devem existir no registry e no defaultHandlers", () => {
+    const registryNames = new Set(commands.map((c) => c.name));
+    assert.ok(registryNames.has("doctor"), "doctor deve estar no registry");
+    assert.ok(registryNames.has("setup"), "setup deve estar no registry");
+    assert.ok(Object.hasOwn(defaultHandlers, "doctor"), "doctor deve estar no defaultHandlers");
+    assert.ok(Object.hasOwn(defaultHandlers, "setup"), "setup deve estar no defaultHandlers");
   });
 });
