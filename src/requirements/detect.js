@@ -2,11 +2,15 @@ import path from "node:path";
 import { proc } from "../arch/proc.js";
 
 export function hasBinary(bin, { env = process.env, existsSync, extraPaths = [] } = {}) {
+  const systemBinPaths =
+    env.MILLBODY_SYSTEM_BIN_PATHS !== undefined
+      ? env.MILLBODY_SYSTEM_BIN_PATHS.split(path.delimiter).filter(Boolean)
+      : ["/opt/homebrew/bin", "/usr/local/bin"];
+
   const pathDirs = [
     ...(env.PATH ?? "").split(path.delimiter).filter(Boolean),
     ...extraPaths,
-    "/opt/homebrew/bin",
-    "/usr/local/bin",
+    ...systemBinPaths,
   ];
 
   for (const dir of pathDirs) {

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -60,13 +61,31 @@ export function shouldSkip(env, platform, pkgDir) {
   return null;
 }
 
-export async function run({ env = process.env, platform = process.platform, pkgDir = PKG_DIR, runSetup, log = console.log } = {}) {
-  const logPath = path.join(pkgDir, ".millbody-postinstall.log");
+export async function run({
+  env = process.env,
+  platform = process.platform,
+  pkgDir = PKG_DIR,
+  runSetup,
+  log = console.log,
+  timeoutMs = 180000,
+  exit = (c) => process.exit(c),
+} = {}) {
+  const primaryLogPath = path.join(pkgDir, ".millbody-postinstall.log");
+  const fallbackLogPath = path.join(os.tmpdir(), ".millbody-postinstall.log");
 
   const writelog = (msg) => {
+    const line = `${new Date().toISOString()} ${msg}\n`;
+    let wrote = false;
     try {
-      fs.appendFileSync(logPath, `${new Date().toISOString()} ${msg}\n`);
+      fs.appendFileSync(primaryLogPath, line);
+      wrote = true;
     } catch {
+    }
+    if (!wrote) {
+      try {
+        fs.appendFileSync(fallbackLogPath, line);
+      } catch {
+      }
     }
     log(msg);
   };
@@ -87,10 +106,9 @@ export async function run({ env = process.env, platform = process.platform, pkgD
     }
 
     const killTimeout = setTimeout(() => {
-      writelog("[millbody postinstall] timeout atingido (180s), encerrando...");
-      process.exitCode = 0;
-      process.kill(process.pid, "SIGKILL");
-    }, 180000);
+      writelog("[millbody postinstall] timeout atingido, encerrando...");
+      exit(0);
+    }, timeoutMs);
     if (typeof killTimeout.unref === "function") killTimeout.unref();
 
     const childEnv = {
@@ -100,23 +118,19 @@ export async function run({ env = process.env, platform = process.platform, pkgD
       COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
     };
 
-    await setupFn({
+    const exitCode = await setupFn({
+      allArchs: true,
       yes: true,
       dryRun: false,
-      arch: undefined,
-      project: undefined,
-      projectDir: process.cwd(),
       env: childEnv,
     });
 
     clearTimeout(killTimeout);
-    writelog("[millbody postinstall] setup concluído.");
+    writelog(`[millbody postinstall] setup concluído (exit=${exitCode ?? 0})`);
   } catch (err) {
-    try {
-      fs.appendFileSync(logPath, `${new Date().toISOString()} [millbody postinstall] erro: ${err?.message ?? err}\n`);
-    } catch {
-    }
-    process.exitCode = 0;
+    const msg = err?.message ?? String(err);
+    writelog(`[millbody postinstall] erro: ${msg}`);
+    exit(0);
   }
 }
 

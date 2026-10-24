@@ -234,10 +234,14 @@ const sharedCommands = [
     aliases: [],
     archs: ["legacy", "expo"],
     summary: "Instala requisitos externos faltantes automaticamente",
-    usage: "millbody setup [--arch <expo|legacy>] [--project <caminho>] [--yes] [--dry-run]",
+    usage: "millbody setup [--all] [--arch <expo|legacy>] [--project <caminho>] [--yes] [--dry-run]",
     description:
-      "Detecta requisitos faltantes e auto-instala os que suportam instalação automática (via brew, corepack, gem). Solicita confirmação antes de instalar (use --yes para pular). Com --dry-run apenas exibe o plano sem instalar.",
+      "Detecta requisitos faltantes e auto-instala os que suportam instalação automática (via brew, corepack, gem). Solicita confirmação antes de instalar (use --yes para pular). Com --dry-run apenas exibe o plano sem instalar. Use --all para instalar os requisitos da união de ambas as arquiteturas (expo e legacy) sem detecção de projeto.",
     flags: [
+      {
+        flags: "--all",
+        description: "Instala requisitos da união de expo e legacy sem detectar a arquitetura do projeto. Útil como caminho de reparo após falha no postinstall.",
+      },
       {
         flags: "--arch <expo|legacy>",
         description: "Força a arquitetura a configurar.",
@@ -257,6 +261,7 @@ const sharedCommands = [
     ],
     examples: [
       "millbody setup",
+      "millbody setup --all",
       "millbody setup --dry-run",
       "millbody setup --yes",
       "millbody setup --arch expo --project ./app-mobile",
