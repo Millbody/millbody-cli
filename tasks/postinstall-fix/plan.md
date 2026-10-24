@@ -161,10 +161,10 @@ Notas do gate (`~/.claude/hooks/qa_gate.py`): roda cada `run` via `bash -lc` na 
 - [x] T4.7: [LOW] Rodar `npm test` + `npm run test:coverage`; garantir thresholds 90/85/90 (cobrir novos ramos).
 
 ### Fase 5: Verificação final (orchestrator)
-- [ ] T5.1: Confirmar smoke FALHA pré-fix (evidência T1.2b) e PASSA no estado final (controle positivo).
-- [ ] T5.2: `python3 ~/.claude/hooks/qa_gate.py check <worktree>` → `RESULTADO: APROVADO`.
-- [ ] T5.3: `git log origin/master..HEAD --format=%B` sem Claude/IA/Co-Authored-By.
-- [ ] T5.4: Doc de entrega em `docs/004-postinstall-fix.md`.
+- [x] T5.1: Confirmar smoke FALHA pré-fix (evidência T1.2b) e PASSA no estado final (controle positivo).
+- [x] T5.2: `python3 ~/.claude/hooks/qa_gate.py check <worktree>` → `RESULTADO: APROVADO`.
+- [x] T5.3: `git log origin/master..HEAD --format=%B` sem Claude/IA/Co-Authored-By.
+- [x] T5.4: Doc de entrega em `docs/004-postinstall-fix.md`.
 
 ## Análise Dual
 
