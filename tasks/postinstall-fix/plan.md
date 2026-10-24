@@ -152,13 +152,13 @@ Notas do gate (`~/.claude/hooks/qa_gate.py`): roda cada `run` via `bash -lc` na 
 - [x] T3.2: [LOW] `package.json`: bump `2.0.1`. (commit docs+versão)
 
 ### Fase 4: Testes (test-engineer)
-- [ ] T4.1: [LOW] Unit: `requirementsForAll` (dedup por key com tabela; `new Set(keys).size===keys.length`; ordem) + `evaluateRequirements` com `reqs`/`reqs:[]`.
-- [ ] T4.2: [MEDIUM] Unit/integ: `setup` trilha `allArchs` — NÃO chama resolveArch (sem throw em dir vazio, EC02), tenta instalar formulas de ambas archs; EC01 (brew falha, corepack roda, retorna 1). Reuso de `allOkDeps`/`noTTY`/`makeExecFileFn`.
-- [ ] T4.3: [MEDIUM] `postinstall`: runSetup recebe `allArchs:true` e `projectDir` undefined; timeout injetável → `exit(0)` com runSetup lento; log `setup concluído (exit=N)` e `erro:`. Lembrar `MILLBODY_SKIP_SETUP=1` antes de importar (R4).
-- [ ] T4.4: [LOW] Unit: `hasBinary` respeita `MILLBODY_SYSTEM_BIN_PATHS` (default e override vazio).
-- [ ] T4.5: [LOW] Regressão: `doctor`/`resolveArch` ainda lançam em dir não-projeto (trilha padrão intocada).
-- [ ] T4.6: [LOW] Atualizar/conferir consistency/help/registry tests p/ `--all` (podem passar sozinhos se README+registry alinhados).
-- [ ] T4.7: [LOW] Rodar `npm test` + `npm run test:coverage`; garantir thresholds 90/85/90 (cobrir novos ramos).
+- [x] T4.1: [LOW] Unit: `requirementsForAll` (dedup por key com tabela; `new Set(keys).size===keys.length`; ordem) + `evaluateRequirements` com `reqs`/`reqs:[]`.
+- [x] T4.2: [MEDIUM] Unit/integ: `setup` trilha `allArchs` — NÃO chama resolveArch (sem throw em dir vazio, EC02), tenta instalar formulas de ambas archs; EC01 (brew falha, corepack roda, retorna 1). Reuso de `allOkDeps`/`noTTY`/`makeExecFileFn`.
+- [x] T4.3: [MEDIUM] `postinstall`: runSetup recebe `allArchs:true` e `projectDir` undefined; timeout injetável → `exit(0)` com runSetup lento; log `setup concluído (exit=N)` e `erro:`. Lembrar `MILLBODY_SKIP_SETUP=1` antes de importar (R4).
+- [x] T4.4: [LOW] Unit: `hasBinary` respeita `MILLBODY_SYSTEM_BIN_PATHS` (default e override vazio).
+- [x] T4.5: [LOW] Regressão: `doctor`/`resolveArch` ainda lançam em dir não-projeto (trilha padrão intocada).
+- [x] T4.6: [LOW] Atualizar/conferir consistency/help/registry tests p/ `--all` (podem passar sozinhos se README+registry alinhados).
+- [x] T4.7: [LOW] Rodar `npm test` + `npm run test:coverage`; garantir thresholds 90/85/90 (cobrir novos ramos).
 
 ### Fase 5: Verificação final (orchestrator)
 - [ ] T5.1: Confirmar smoke FALHA pré-fix (evidência T1.2b) e PASSA no estado final (controle positivo).

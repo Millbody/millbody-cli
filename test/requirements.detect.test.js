@@ -1,8 +1,15 @@
-import { describe, it } from "node:test";
+import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { hasBinary, javaMajor, hasAndroidSdk, hasXcode } from "../src/requirements/detect.js";
 import { makeExecFileFn } from "./helpers/processFake.js";
+
+const created = [];
+after(() => {
+  while (created.length) fs.rmSync(created.pop(), { recursive: true, force: true });
+});
 
 const sep = path.delimiter;
 
@@ -43,6 +50,31 @@ describe("[requirements/detect] hasBinary — varredura de PATH (não command -v
   it("não quebra quando PATH é indefinido", () => {
     const existsSync = () => false;
     assert.equal(hasBinary("git", { env: {}, existsSync }), false);
+  });
+});
+
+describe("[requirements/detect] hasBinary — MILLBODY_SYSTEM_BIN_PATHS", () => {
+  it("usa diretórios padrão quando env não define MILLBODY_SYSTEM_BIN_PATHS", () => {
+    const existsSync = (p) => p === "/opt/homebrew/bin/brew";
+    const result = hasBinary("brew", { env: { PATH: "/bin" }, existsSync });
+    assert.equal(result, true);
+  });
+
+  it("respeita MILLBODY_SYSTEM_BIN_PATHS vazio — não usa diretórios padrão", () => {
+    const existsSync = () => false;
+    const result = hasBinary("brew", { env: { PATH: "/bin", MILLBODY_SYSTEM_BIN_PATHS: "" }, existsSync });
+    assert.equal(result, false);
+  });
+
+  it("respeita MILLBODY_SYSTEM_BIN_PATHS com diretório customizado", () => {
+    const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "millbody-detect-")));
+    created.push(tmpDir);
+    fs.writeFileSync(path.join(tmpDir, "mytool"), "#!/bin/sh\n", { mode: 0o755 });
+    const result = hasBinary("mytool", {
+      env: { PATH: "/bin", MILLBODY_SYSTEM_BIN_PATHS: tmpDir },
+      existsSync: fs.existsSync,
+    });
+    assert.equal(result, true);
   });
 });
 

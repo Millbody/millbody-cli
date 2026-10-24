@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   requirements,
   requirementsFor,
+  requirementsForAll,
   evaluateRequirements,
 } from "../src/requirements/requirements.js";
 import { makeExecFileFn } from "./helpers/processFake.js";
@@ -56,6 +57,53 @@ describe("[requirements] requirementsFor", () => {
     const brew = requirements.find((r) => r.key === "homebrew");
     assert.equal(brew.autoInstallable, false);
     assert.equal(brew.autoInstall, null);
+  });
+});
+
+describe("[requirements] requirementsForAll", () => {
+  it("chaves são únicas", () => {
+    const keys = requirementsForAll().map((r) => r.key);
+    assert.equal(new Set(keys).size, keys.length);
+  });
+
+  it("contém requisitos de ambas as arquiteturas", () => {
+    const keys = requirementsForAll().map((r) => r.key);
+    assert.ok(keys.includes("watchman"), "watchman (expo-only) deve estar presente");
+    assert.ok(keys.includes("fastlane"), "fastlane (legacy-only) deve estar presente");
+  });
+
+  it("ordem determinística — duas chamadas retornam as mesmas chaves na mesma ordem", () => {
+    const first = requirementsForAll().map((r) => r.key);
+    const second = requirementsForAll().map((r) => r.key);
+    assert.deepEqual(first, second);
+  });
+});
+
+describe("[requirements] evaluateRequirements — com reqs explícito", () => {
+  it("retorna array vazio quando reqs é vazio", async () => {
+    const results = await evaluateRequirements({ reqs: [], deps: {} });
+    assert.equal(results.length, 0);
+  });
+
+  it("avalia subset explícito de requisitos", async () => {
+    const deps = {
+      execFile: makeExecFileFn({
+        "/usr/libexec/java_home": { stdout: "/j" },
+        "/j/bin/java": { stderr: 'openjdk version "17"' },
+        "xcode-select": { stdout: "/dev" },
+      }),
+      existsSync: (p) => p === "/usr/bin/git",
+      env: { PATH: "/usr/bin", ANDROID_HOME: "/android" },
+      ttabPath: "/ttab/bin/ttab",
+    };
+    const gitReq = requirements.find((r) => r.key === "git");
+    const fastlaneReq = requirements.find((r) => r.key === "fastlane");
+    const results = await evaluateRequirements({ reqs: [gitReq, fastlaneReq], deps });
+    assert.equal(results.length, 2);
+    const gitResult = results.find((r) => r.req.key === "git");
+    const fastlaneResult = results.find((r) => r.req.key === "fastlane");
+    assert.equal(gitResult.ok, true);
+    assert.equal(fastlaneResult.ok, false);
   });
 });
 
