@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-SHIMDIR="$REPO_ROOT/test/smoke/shims"
+VERSIONED_SHIMS="$REPO_ROOT/test/smoke/shims"
 
 node_version="$(node -v 2>/dev/null || true)"
 if [ -z "$node_version" ]; then
@@ -18,6 +18,12 @@ case "$node_version" in
 esac
 
 T="$(mktemp -d "${TMPDIR:-/tmp}/millbody-smoke.XXXXXX")"
+SHIMDIR="$T/shimdir"
+mkdir -p "$SHIMDIR"
+cp "$VERSIONED_SHIMS/brew" "$VERSIONED_SHIMS/corepack" "$VERSIONED_SHIMS/gem" "$SHIMDIR/"
+ln -sf "$(command -v node)" "$SHIMDIR/node"
+ln -sf "$(command -v npm)" "$SHIMDIR/npm"
+ln -sf "$(command -v git)" "$SHIMDIR/git"
 
 SHIM_BREW_LOG="$T/shim-brew.log"
 SHIM_COREPACK_LOG="$T/shim-corepack.log"
@@ -40,10 +46,6 @@ trap cleanup EXIT INT TERM
   kill $$ 2>/dev/null || true
 ) &
 WATCHDOG_PID=$!
-
-ln -sf "$(command -v node)" "$SHIMDIR/node"
-ln -sf "$(command -v npm)" "$SHIMDIR/npm"
-ln -sf "$(command -v git)" "$SHIMDIR/git"
 
 export PATH="$SHIMDIR:/usr/bin:/bin"
 
@@ -99,7 +101,6 @@ env \
   npm_config_cache="$HOME/.npm" \
   npm_config_prefix="$T/prefix" \
   npm_config_update_notifier="false" \
-  npm_config_scripts_prepend_node_path="false" \
   MILLBODY_SYSTEM_BIN_PATHS="" \
   npm_config_global="true" \
   bash -c "cd '$INIT_CWD_DIR' && npm install -g '$TGZ' --prefix '$T/prefix' --prefer-offline" || true
