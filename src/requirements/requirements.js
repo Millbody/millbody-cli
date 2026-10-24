@@ -19,7 +19,7 @@ export const requirements = [
     archs: ["expo", "legacy"],
     required: true,
     bundled: false,
-    detect: async (deps) => hasBinary("brew", { ...deps, extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"] }),
+    detect: async (deps) => hasBinary("brew", deps),
     autoInstall: null,
     autoInstallable: false,
     manualInstruction: "Instale o Homebrew: https://brew.sh",
