@@ -135,21 +135,21 @@ Notas do gate (`~/.claude/hooks/qa_gate.py`): roda cada `run` via `bash -lc` na 
 ## 📝 TASKS
 
 ### Fase 1: Scaffolding + prova de FALHA pré-fix (fazer PRIMEIRO)
-- [ ] T1.1: [LOW] Adicionar `.worktrees/` ao `.gitignore`. (commit)
-- [ ] T1.2a: [HIGH] Criar `test/smoke/shims/{brew,corepack,gem}` + `test/smoke/smoke-install.sh` hermético conforme DESIGN (isolamento npm, PATH mínimo, env seam, guardas loud, watchdog, cleanup, pack --json).
-- [ ] T1.2b: [MEDIUM] Criar `.qa-gate.json` (3 checks). `git add` tudo. Rodar o smoke contra o código ATUAL (v2.0.0, pré-fix) e CAPTURAR evidência: falha, log com `Não foi possível detectar a arquitetura`, sem `setup concluído`. (commit scaffolding)
+- [x] T1.1: [LOW] Adicionar `.worktrees/` ao `.gitignore`. (commit)
+- [x] T1.2a: [HIGH] Criar `test/smoke/shims/{brew,corepack,gem}` + `test/smoke/smoke-install.sh` hermético conforme DESIGN (isolamento npm, PATH mínimo, env seam, guardas loud, watchdog, cleanup, pack --json).
+- [x] T1.2b: [MEDIUM] Criar `.qa-gate.json` (3 checks). `git add` tudo. Rodar o smoke contra o código ATUAL (v2.0.0, pré-fix) e CAPTURAR evidência: falha, log com `Não foi possível detectar a arquitetura`, sem `setup concluído`. (commit scaffolding)
 
 ### Fase 2: Implementação Core (fix) — informada pela análise dual do @software-engineer
-- [ ] T2.1: [LOW] `detect.js`: `hasBinary` lê dirs de sistema de `env.MILLBODY_SYSTEM_BIN_PATHS` (default inalterado). (seam de hermeticidade)
-- [ ] T2.2: [LOW] `requirements.js`: `requirementsForAll()` (D3) + `evaluateRequirements` com `reqs ?? requirementsFor(arch)` (D4).
-- [ ] T2.3: [MEDIUM] `setup.js`: seam `resolveRequirementSet(options)` + branch `allArchs` (D5). Fluxo de instalação compartilhado preserva EC01 (loop já tolera falha por item).
-- [ ] T2.4: [MEDIUM] `postinstall.js`: passar só `{allArchs:true,...}`; timeout injetável com `exit(0)` limpo (risco 4); logar `setup concluído (exit=N)`/`erro:` + fallback de log em tmp (risco 5). (commit fix core)
-- [ ] T2.5: [LOW] `cli.js`: `--all: Boolean` → `options.allArchs`.
-- [ ] T2.6: [LOW] `registry/shared.js`: flag `--all` + `usage` + exemplo `millbody setup --all`. (commit junto de T2.5)
+- [x] T2.1: [LOW] `detect.js`: `hasBinary` lê dirs de sistema de `env.MILLBODY_SYSTEM_BIN_PATHS` (default inalterado). (seam de hermeticidade)
+- [x] T2.2: [LOW] `requirements.js`: `requirementsForAll()` (D3) + `evaluateRequirements` com `reqs ?? requirementsFor(arch)` (D4).
+- [x] T2.3: [MEDIUM] `setup.js`: seam `resolveRequirementSet(options)` + branch `allArchs` (D5). Fluxo de instalação compartilhado preserva EC01 (loop já tolera falha por item).
+- [x] T2.4: [MEDIUM] `postinstall.js`: passar só `{allArchs:true,...}`; timeout injetável com `exit(0)` limpo (risco 4); logar `setup concluído (exit=N)`/`erro:` + fallback de log em tmp (risco 5). (commit fix core)
+- [x] T2.5: [LOW] `cli.js`: `--all: Boolean` → `options.allArchs`.
+- [x] T2.6: [LOW] `registry/shared.js`: flag `--all` + `usage` + exemplo `millbody setup --all`. (commit junto de T2.5)
 
 ### Fase 3: Docs + Versão
-- [ ] T3.1: [LOW] `README.md`: instalação instala união de AMBAS as archs; `--all` como caminho de reparo manual p/ quem teve v2.0.0 falho; onde fica o log; opt-out `MILLBODY_SKIP_SETUP`. DEVE conter a string `--all` (help-consistency test exige flag do registry no README).
-- [ ] T3.2: [LOW] `package.json`: bump `2.0.1`. (commit docs+versão)
+- [x] T3.1: [LOW] `README.md`: instalação instala união de AMBAS as archs; `--all` como caminho de reparo manual p/ quem teve v2.0.0 falho; onde fica o log; opt-out `MILLBODY_SKIP_SETUP`. DEVE conter a string `--all` (help-consistency test exige flag do registry no README).
+- [x] T3.2: [LOW] `package.json`: bump `2.0.1`. (commit docs+versão)
 
 ### Fase 4: Testes (test-engineer)
 - [ ] T4.1: [LOW] Unit: `requirementsForAll` (dedup por key com tabela; `new Set(keys).size===keys.length`; ordem) + `evaluateRequirements` com `reqs`/`reqs:[]`.
