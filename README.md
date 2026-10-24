@@ -25,7 +25,16 @@ npm install -g @millbody/millbody-cli
 yarn global add @millbody/millbody-cli
 ```
 
-O postinstall detecta a arquitetura do projeto e instala automaticamente as dependências externas faltantes (git, Homebrew, yarn, watchman, CocoaPods, JDK 17, fastlane) via `brew`, `corepack` ou `gem`. A instalação é **best-effort**: se falhar, o CLI ainda fica disponível. Ferramentas que exigem interação manual (Xcode, Android SDK, Homebrew) são apenas orientadas.
+O postinstall instala automaticamente a **união** dos requisitos de ambas as arquiteturas (expo e legacy) — sem detecção de projeto — via `brew`, `corepack` ou `gem`. Isso garante que todas as ferramentas necessárias (git, Homebrew, yarn, watchman, CocoaPods, JDK 17, fastlane) estejam disponíveis independentemente do tipo de projeto. A instalação é **best-effort**: se falhar, o CLI ainda fica disponível. Ferramentas que exigem interação manual (Xcode, Android SDK, Homebrew) são apenas orientadas.
+
+O log da instalação automática fica em:
+- `<prefixo global>/lib/node_modules/@millbody/millbody-cli/.millbody-postinstall.log`
+- ou em `~/.millbody-postinstall.log` (fallback quando o prefixo é de propriedade do root)
+
+**Caminho de reparo manual** (para quem teve instalação com v2.0.0 falha):
+```bash
+millbody setup --all --yes
+```
 
 Para pular a instalação automática:
 ```bash
@@ -393,6 +402,7 @@ millbody doctor --arch legacy
 Detecta requisitos faltantes e instala automaticamente os que suportam instalação automática (via `brew`, `corepack` ou `gem`). Solicita confirmação antes de instalar. Com `--dry-run` apenas exibe o plano sem instalar.
 
 **Flags:**
+- `--all` — instala requisitos da união de expo e legacy sem detectar a arquitetura do projeto; útil como caminho de reparo manual
 - `--arch <expo|legacy>` — força a arquitetura a configurar
 - `--project, -p <caminho>` — diretório do projeto (padrão: diretório atual)
 - `--yes, -y` — confirma a instalação sem aguardar input do usuário
@@ -401,6 +411,7 @@ Detecta requisitos faltantes e instala automaticamente os que suportam instalaç
 **Exemplos:**
 ```bash
 millbody setup
+millbody setup --all
 millbody setup --dry-run
 millbody setup --yes
 millbody setup --arch expo --project ./app-mobile

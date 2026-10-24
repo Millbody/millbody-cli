@@ -1,5 +1,5 @@
 import { resolveArch } from "../arch/detect.js";
-import { evaluateRequirements } from "../requirements/requirements.js";
+import { evaluateRequirements, requirementsForAll } from "../requirements/requirements.js";
 import { proc } from "../arch/proc.js";
 import fs from "node:fs";
 
@@ -60,6 +60,17 @@ async function installRequirement(req, { execFile }) {
   throw new Error(`Método de instalação desconhecido: ${autoInstall.method}`);
 }
 
+function resolveRequirementSet(options) {
+  if (options.allArchs) {
+    return { reqs: requirementsForAll() };
+  }
+  const { arch } = resolveArch({
+    archFlag: options.arch,
+    projectDir: options.projectDir ?? options.project,
+  });
+  return { arch };
+}
+
 export default async function setup(options, deps = {}) {
   const {
     execFile = proc.execFile,
@@ -69,10 +80,7 @@ export default async function setup(options, deps = {}) {
     stdout = process.stdout,
   } = deps;
 
-  const { arch, projectDir } = resolveArch({
-    archFlag: options.arch,
-    projectDir: options.projectDir ?? options.project,
-  });
+  const requirementSet = resolveRequirementSet(options);
 
   const { createRequire } = await import("node:module");
   const require = createRequire(import.meta.url);
@@ -88,7 +96,7 @@ export default async function setup(options, deps = {}) {
   }
 
   const results = await evaluateRequirements({
-    arch,
+    ...requirementSet,
     deps: { execFile, existsSync, env, ttabPath },
   });
 

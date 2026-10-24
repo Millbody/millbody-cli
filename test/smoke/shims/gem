@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "$@" >> "$SHIM_GEM_LOG"
+exit 0

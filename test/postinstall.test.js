@@ -99,6 +99,86 @@ describe("[postinstall] shouldSkip — table-driven", () => {
   });
 });
 
+describe("[postinstall] run — allArchs e injeção de dependências", () => {
+  it("runSetup recebe allArchs:true e projectDir não definido", async () => {
+    const runSetup = mock.fn(async () => 0);
+    const exit = mock.fn();
+    const log = mock.fn();
+    const pkgDir = makeDir();
+    const otherDir = makeDir();
+    await run({
+      env: { npm_config_global: "true", INIT_CWD: otherDir },
+      platform: DARWIN,
+      pkgDir,
+      runSetup,
+      exit,
+      log,
+    });
+    assert.equal(runSetup.mock.calls.length, 1);
+    const [opts] = runSetup.mock.calls[0].arguments;
+    assert.equal(opts.allArchs, true);
+    assert.equal(opts.projectDir, undefined);
+  });
+
+  it("timeout injetável chama exit(0) sem encerrar o runner", async () => {
+    const exit = mock.fn();
+    const log = mock.fn();
+    const pkgDir = makeDir();
+    const otherDir = makeDir();
+    const slowSetup = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return 0;
+    };
+    await run({
+      env: { npm_config_global: "true", INIT_CWD: otherDir },
+      platform: DARWIN,
+      pkgDir,
+      runSetup: slowSetup,
+      timeoutMs: 10,
+      exit,
+      log,
+    });
+    assert.equal(exit.mock.calls.length, 1);
+    assert.equal(exit.mock.calls[0].arguments[0], 0);
+  });
+
+  it("log contém 'setup concluído'", async () => {
+    const runSetup = mock.fn(async () => 0);
+    const log = mock.fn();
+    const pkgDir = makeDir();
+    const otherDir = makeDir();
+    await run({
+      env: { npm_config_global: "true", INIT_CWD: otherDir },
+      platform: DARWIN,
+      pkgDir,
+      runSetup,
+      log,
+    });
+    const logContent = fs.readFileSync(path.join(pkgDir, ".millbody-postinstall.log"), "utf8");
+    assert.ok(logContent.includes("setup concluído"), "log deve conter 'setup concluído'");
+  });
+
+  it("log contém 'erro:' quando runSetup lança", async () => {
+    const runSetup = mock.fn(async () => {
+      throw new Error("falha de teste");
+    });
+    const exit = mock.fn();
+    const log = mock.fn();
+    const pkgDir = makeDir();
+    const otherDir = makeDir();
+    await run({
+      env: { npm_config_global: "true", INIT_CWD: otherDir },
+      platform: DARWIN,
+      pkgDir,
+      runSetup,
+      exit,
+      log,
+    });
+    const logContent = fs.readFileSync(path.join(pkgDir, ".millbody-postinstall.log"), "utf8");
+    assert.ok(logContent.includes("erro:"), "log deve conter 'erro:'");
+  });
+});
+
 describe("[postinstall] run — sempre resolve, exit 0", () => {
   it("pula setup e não chama runSetup quando shouldSkip retorna razão", async () => {
     const runSetup = mock.fn(async () => {});

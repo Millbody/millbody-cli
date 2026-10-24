@@ -154,3 +154,72 @@ describe("[commands/setup]", () => {
     );
   });
 });
+
+describe("[commands/setup] trilha allArchs", () => {
+  it("não lança em diretório vazio — resolveArch não é chamado", async () => {
+    const emptyDir = makeFixture({});
+    await assert.doesNotReject(
+      setup({ allArchs: true, yes: true, dryRun: true }, allOkDeps())
+    );
+  });
+
+  it("tenta instalar fórmulas de ambas as archs (watchman e fastlane)", async () => {
+    const inner = makeExecFileFn({
+      brew: { stdout: "" },
+      corepack: { stdout: "" },
+      "/usr/libexec/java_home": { error: new Error("no jdk") },
+      java: { error: new Error("no java") },
+      "xcode-select": { error: new Error("not found") },
+    });
+    const execFile = mock.fn((...a) => inner(...a));
+    const code = await setup(
+      { allArchs: true, yes: true },
+      {
+        execFile,
+        existsSync: () => false,
+        env: {},
+        ...noTTY,
+      }
+    );
+    const brewArgs = execFile.mock.calls
+      .filter((c) => c.arguments[0] === "brew")
+      .map((c) => c.arguments[1]);
+    const formulae = brewArgs.flat();
+    assert.ok(formulae.includes("watchman"), "watchman (expo) deve ser instalado");
+    assert.ok(formulae.includes("fastlane"), "fastlane (legacy) deve ser instalado");
+    assert.ok(code >= 0);
+  });
+
+  it("EC01: brew falha, corepack roda, retorna 1", async () => {
+    const inner = makeExecFileFn({
+      brew: { error: new Error("brew indisponível") },
+      corepack: { stdout: "" },
+      "/usr/libexec/java_home": { error: new Error("no jdk") },
+      java: { error: new Error("no java") },
+      "xcode-select": { error: new Error("not found") },
+    });
+    const execFile = mock.fn((...a) => inner(...a));
+    const code = await setup(
+      { allArchs: true, yes: true },
+      {
+        execFile,
+        existsSync: () => false,
+        env: {},
+        ...noTTY,
+      }
+    );
+    assert.equal(code, 1);
+    const bins = execFile.mock.calls.map((c) => c.arguments[0]);
+    assert.ok(bins.includes("corepack"), "corepack deve ter sido invocado mesmo com brew falhando");
+  });
+});
+
+describe("[commands/setup] regressão: resolveArch lança em dir sem marcadores", () => {
+  it("setup sem allArchs em dir vazio lança erro de arquitetura", async () => {
+    const emptyDir = makeFixture({});
+    await assert.rejects(
+      setup({ projectDir: emptyDir }, allOkDeps()),
+      /Não foi possível detectar a arquitetura/
+    );
+  });
+});

@@ -56,6 +56,7 @@ export function parseArgumentsIntoOptions(rawArgs) {
         "--yes": Boolean,
         "-y": "--yes",
         "--dry-run": Boolean,
+        "--all": Boolean,
         "--help": Boolean,
         "-h": "--help",
         "--version": Boolean,
@@ -91,6 +92,7 @@ export function parseArgumentsIntoOptions(rawArgs) {
     project: args["--project"],
     yes: args["--yes"],
     dryRun: args["--dry-run"],
+    allArchs: args["--all"],
     help: hasHelpFlag,
     version: hasVersionFlag,
   };

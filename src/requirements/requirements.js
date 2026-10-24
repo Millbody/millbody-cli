@@ -1,4 +1,5 @@
 import { hasBinary, javaMajor, hasAndroidSdk, hasXcode } from "./detect.js";
+import { ARCHS } from "../arch/detect.js";
 
 export const requirements = [
   {
@@ -18,7 +19,7 @@ export const requirements = [
     archs: ["expo", "legacy"],
     required: true,
     bundled: false,
-    detect: async (deps) => hasBinary("brew", { ...deps, extraPaths: ["/opt/homebrew/bin", "/usr/local/bin"] }),
+    detect: async (deps) => hasBinary("brew", deps),
     autoInstall: null,
     autoInstallable: false,
     manualInstruction: "Instale o Homebrew: https://brew.sh",
@@ -124,8 +125,22 @@ export function requirementsFor(arch) {
   return requirements.filter((req) => req.archs.includes(arch));
 }
 
-export async function evaluateRequirements({ arch, deps }) {
-  const applicable = requirementsFor(arch);
+export function requirementsForAll() {
+  const seen = new Set();
+  const result = [];
+  for (const arch of ARCHS) {
+    for (const req of requirementsFor(arch)) {
+      if (!seen.has(req.key)) {
+        seen.add(req.key);
+        result.push(req);
+      }
+    }
+  }
+  return result;
+}
+
+export async function evaluateRequirements({ arch, reqs, deps }) {
+  const applicable = reqs !== undefined ? reqs : requirementsFor(arch);
   const results = await Promise.all(
     applicable.map(async (req) => {
       let ok = false;
