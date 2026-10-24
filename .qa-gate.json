@@ -1,0 +1,5 @@
+{"checks":[
+  {"name":"unit","run":"npm test","timeout":300},
+  {"name":"coverage","run":"npm run test:coverage","timeout":300},
+  {"name":"smoke-install","run":"bash test/smoke/smoke-install.sh","timeout":420}
+]}

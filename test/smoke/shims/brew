@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "$@" >> "$SHIM_BREW_LOG"
+exit 0
