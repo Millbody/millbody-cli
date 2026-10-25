@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from "node:fs";
 import path from "node:path";
 import arg from "arg";
 import { select } from "@inquirer/prompts";
@@ -24,6 +25,8 @@ import {
   renderUnknownCommand,
   resolveInformational,
 } from "./help.js";
+
+const SELF_RESOLVING = new Set(["doctor", "setup"]);
 
 export const defaultHandlers = {
   test: (options) => executeTest(options),
@@ -124,22 +127,29 @@ export async function promptForMissingOptions(options) {
 }
 
 function resolveProjectArch(options, resolveArchFn) {
-  const hasExplicitProject = options.project !== undefined;
-  const hasExplicitArch = options.arch !== undefined;
+  const { arch, projectDir } = resolveArchFn({
+    archFlag: options.arch,
+    projectDir: options.project,
+  });
 
-  let arch = "legacy";
-  let projectDir = path.resolve(options.project ?? process.cwd());
-
+  let shouldChdir = false;
   try {
-    const resolved = resolveArchFn({ archFlag: options.arch, projectDir: options.project });
-    arch = resolved.arch;
-    projectDir = resolved.projectDir;
-  } catch (err) {
-    if (hasExplicitProject || hasExplicitArch) {
-      throw err;
+    const realProject = fs.realpathSync(projectDir);
+    const realCwd = fs.realpathSync(process.cwd());
+    shouldChdir = realProject !== realCwd;
+  } catch {
+    shouldChdir = false;
+  }
+
+  if (shouldChdir) {
+    try {
+      process.chdir(projectDir);
+      process.stderr.write(`[millbody] usando projeto em: ${projectDir}\n`);
+    } catch (err) {
+      throw new Error(
+        `Não foi possível mudar para o diretório do projeto: ${projectDir}\n${err.message}`
+      );
     }
-    arch = "legacy";
-    projectDir = path.resolve(process.cwd());
   }
 
   return { arch, projectDir };
@@ -172,6 +182,19 @@ export async function cli(
   options = await promptForMissingOptions(options);
   const { template } = options;
 
+  if (SELF_RESOLVING.has(template)) {
+    options = { ...options, projectDir: options.project };
+    const result = await handlers[template](options);
+    if (typeof result === "number") {
+      process.exitCode = result;
+    }
+    return result;
+  }
+
+  if (!Object.hasOwn(handlers, template) && !Object.hasOwn(expoHandlers, template)) {
+    throw new Error(`${renderUnknownCommand(template, commands)}`);
+  }
+
   const { arch, projectDir } = resolveProjectArch(options, resolveArchFn);
   options = { ...options, projectDir };
 
@@ -184,13 +207,7 @@ export async function cli(
   }
 
   if (!Object.hasOwn(handlers, template)) {
-    throw new Error(
-      `${renderUnknownCommand(template, commands)}`
-    );
-  }
-
-  if (options.project) {
-    process.chdir(projectDir);
+    throw new Error(`${renderUnknownCommand(template, commands)}`);
   }
 
   const result = await handlers[template](options);
