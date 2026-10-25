@@ -91,17 +91,23 @@ Projetos usando o repositório `app-mobile` (Expo SDK ~57, RN 0.86, Yarn 1.x):
 
 ### Regras de detecção
 
-1. `--arch <expo|legacy>` — força a arquitetura (bypassa detecção)
-2. Marcadores expo presentes → `expo`
-3. Marcadores legacy presentes → `legacy`
-4. Ambos presentes → `expo` (registrado como ambíguo; use `--arch` para forçar)
-5. Nenhum marcador → erro (especifique `--arch` ou navegue para o projeto correto)
+1. **Busca ascendente da raiz** — a partir do diretório atual (ou de `--project`), o CLI sobe nível a nível até encontrar um diretório com marcadores `expo` ou `legacy`. Quando o projeto encontrado é diferente do diretório atual, o CLI informa qual diretório foi usado.
+2. **Boundary `$HOME`** — a busca inclui o `$HOME` do usuário mas nunca sobe acima dele; projetos Millbody vivem sob o `$HOME`, e limitar aí evita falsos positivos em diretórios de sistema.
+3. Marcadores expo presentes → `expo`.
+4. Marcadores legacy presentes → `legacy`.
+5. Ambos presentes → `expo` (registrado como ambíguo; use `--arch` para forçar).
+6. `--arch <expo|legacy>` — apenas **desambigua**; o diretório (ou um ancestral até o boundary) ainda precisa conter os marcadores mínimos daquela arquitetura, senão o comando falha com erro claro.
+7. Nenhum marcador encontrado → erro listando os diretórios buscados e os marcadores esperados; o comando sai com **código 1** (não há fallback silencioso).
+
+Comandos informativos (`--help`, `--version`, `help <cmd>`) e `setup --all` funcionam em qualquer diretório, sem exigir um projeto.
 
 ```bash
-# Forçar arquitetura
+# Forçar arquitetura (o diretório ainda precisa ter os marcadores da arch)
 millbody doctor --arch expo --project ./app-mobile
 millbody setup --arch legacy --project ./meu-projeto-legacy
 ```
+
+> **Comandos legacy por `--source theme`:** quando executados a partir de uma pasta de tema (`mbContent/themes/<nome>`, com `screens/` + `millbodyApp.json`), os comandos continuam resolvendo a raiz do projeto subindo três níveis (`../../../`), comportamento preservado para compatibilidade com a estrutura de temas existente.
 
 ---
 
