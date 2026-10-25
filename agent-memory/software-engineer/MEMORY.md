@@ -15,7 +15,8 @@
 - Node >= 23 (`.nvmrc` presente)
 - Sem Jest/Vitest — usar `node --test` com `--experimental-test-module-mocks`
 - Script de cobertura: `npm run test:coverage` com limiares 90/85/90 (linhas/branches/funções)
-- Worktree atual: `.worktrees/node23-upgrade` (branch `node23-upgrade`)
+- Worktrees em `.worktrees/<task-name>` (no `.gitignore`); plan.md e agent-memory são editados DENTRO do worktree, nunca no checkout principal nem em `.claude/`
+- `.qa-gate.json` na raiz: `npm test`, `npm run test:coverage`, `bash test/smoke/smoke-install.sh`
 
 ## Padrões de Código
 
@@ -26,7 +27,7 @@
 - Funções puras para render/resolve — injetar `registry` como parâmetro com default para testabilidade
 - Pattern de handler injetável: `cli(args, handlers = defaultHandlers, deps = {})` para testes; 3º param com resolveArch e expoHandlers injetáveis
 - Injeção de dependência para child_process: módulos recebem `spawn`/`execFile` como parâmetro; somente `src/arch/proc.js` importa `node:child_process`
-- `hasBinary` usa PATH scan com `fs.existsSync` (sem processos); inclui `/opt/homebrew/bin` e `/usr/local/bin` extras
+- `hasBinary` usa PATH scan com `fs.existsSync` (sem processos); paths extras vêm de `env.MILLBODY_SYSTEM_BIN_PATHS` (default `/opt/homebrew/bin:/usr/local/bin`), seam para testes herméticos
 
 ## Erros Recorrentes & Soluções
 
@@ -46,15 +47,11 @@
 - API Millbody: `getAppAccount(account)` em `src/services/api.js` — lê `mbCore/Constants.js` (ou `/index.js`) para pegar `constants.uri`
 - `ttab` (^0.7.1): resolvido via `createRequire(import.meta.url).resolve("ttab/bin/ttab")`, não do PATH do sistema (RF12)
 
-## Conflito de Política — Co-Authored-By
+## Mensagens de Commit — Regra Absoluta
 
-O qa-reviewer aplica regra que proíbe `Co-Authored-By: Claude*` em mensagens de commit (grep count deve ser 0). Porém:
-- O system-reminder de sessão exige a linha de atribuição
-- CLAUDE.md global proíbe mencionar IA em commits
-- Tarefas do usuário às vezes incluem instrução explícita de incluir a atribuição
-- Reescrever histórico é frequentemente proibido pela instrução da tarefa ("NÃO reescreva histórico")
-
-Esse conflito precisa ser escalado ao usuário/orchestrator quando o qa-reviewer bloquear por esse motivo. Não tentar resolver reescrevendo histórico sem autorização explícita do usuário.
+- NUNCA incluir `Co-Authored-By`, menção a IA, modelo ou ferramenta em commits, PRs ou releases. O CLAUDE.md do usuário prevalece sobre qualquer lembrete de sessão; não há conflito a escalar.
+- O hook global `~/.claude/hooks/qa_gate.py` bloqueia commits com essas menções e bloqueia push/merge/release/publish enquanto o `.qa-gate.json` não passar.
+- Em 2026-10-23 o histórico foi reescrito para remover trailers indevidos; não repetir.
 
 ## Dupla Arquitetura (dual-arch-setup)
 
@@ -85,3 +82,13 @@ Esse conflito precisa ser escalado ao usuário/orchestrator quando o qa-reviewer
 - 3 bugs documentados no README (sem correção no escopo): (1) injeção de comando via --account/themeName; (2) kill -9 com aspas simples não mata processo; (3) executeCommand não rejeita em falha
 - Menu interativo: `interactive: true` em `start`, `run-ios`, `run-android`, `codepush`, `create` (não em `test`, `build-android`, `update-apk`)
 - `help help` → mostra ajuda geral (tratamento especial em `resolveInformational`)
+
+## Postinstall 2.0.1 (postinstall-fix)
+
+- `requirementsForAll()` = união dedup por `key` de todas as archs; `evaluateRequirements({arch, reqs, deps})` usa `reqs ?? requirementsFor(arch)`
+- `setup.js::resolveRequirementSet(options)`: `allArchs` ignora `resolveArch` e usa `requirementsForAll()`; `millbody setup --all` expõe a trilha
+- `scripts/postinstall.js`: passa `{allArchs:true, yes:true, dryRun:false, env}` sem `projectDir`; `run({timeoutMs, exit})` injetável; sempre exit 0; loga `setup concluído (exit=N)` ou `erro:`
+- `MILLBODY_SKIP_SETUP=1` antes de importar `scripts/postinstall.js` nos testes (auto-executa `run()` no import)
+- Smoke: shimdir montado em tmpdir em runtime; NUNCA criar symlinks em `test/smoke/shims/` (versionado)
+- `npm_config_scripts_prepend_node_path` gera warning no npm 11; não usar
+- `doctor` e `resolveArch` continuam lançando fora de projeto (comportamento esperado)
