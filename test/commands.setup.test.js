@@ -219,7 +219,7 @@ describe("[commands/setup] regressão: resolveArch lança em dir sem marcadores"
     const emptyDir = makeFixture({});
     await assert.rejects(
       setup({ projectDir: emptyDir }, allOkDeps()),
-      /Não foi possível detectar a arquitetura/
+      /Projeto Millbody não encontrado/
     );
   });
 });

@@ -65,9 +65,7 @@ describe("[commands] create", () => {
 
   it("deve recusar pasta que não é raiz de projeto Millbody", async () => {
     fs.rmSync("mbCore", { recursive: true });
-    await create({ account: "acme" }).catch(() => {});
-    assert.equal(exitSpy.mock.calls.length >= 1, true);
-    assert.match(errorSpy.mock.calls[0].arguments[0], /framework MILLBODY APP/);
+    await assert.rejects(create({ account: "acme" }), /framework MILLBODY APP/);
   });
 
   it("deve avisar e não consultar a API sem --account", async () => {

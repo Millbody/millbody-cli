@@ -124,11 +124,13 @@ describe("[cli] promptForMissingOptions", () => {
 });
 
 describe("[cli] roteamento com handlers injetáveis", () => {
+  const stubResolveArch = () => ({ arch: "legacy", projectDir: process.cwd() });
+
   it("deve chamar o handler correto quando template é start", async () => {
     const startHandler = mock.fn(async () => "started");
     const handlers = { start: startHandler };
 
-    await cli(["node", "bin", "start"], handlers);
+    await cli(["node", "bin", "start"], handlers, { resolveArch: stubResolveArch });
 
     assert.strictEqual(startHandler.mock.calls.length, 1);
     const [calledOptions] = startHandler.mock.calls[0].arguments;
@@ -139,7 +141,7 @@ describe("[cli] roteamento com handlers injetáveis", () => {
     const testHandler = mock.fn(async () => "tested");
     const handlers = { test: testHandler };
 
-    await cli(["node", "bin", "test"], handlers);
+    await cli(["node", "bin", "test"], handlers, { resolveArch: stubResolveArch });
 
     assert.strictEqual(testHandler.mock.calls.length, 1);
   });
@@ -147,7 +149,7 @@ describe("[cli] roteamento com handlers injetáveis", () => {
   it("deve lançar Comando desconhecido quando o template não tem handler correspondente", async () => {
     const handlers = {};
     await assert.rejects(
-      () => cli(["node", "bin", "nonexistent-cmd-xyz"], handlers),
+      () => cli(["node", "bin", "nonexistent-cmd-xyz"], handlers, { resolveArch: stubResolveArch }),
       /Comando desconhecido/
     );
   });
@@ -158,7 +160,8 @@ describe("[cli] roteamento com handlers injetáveis", () => {
 
     await cli(
       ["node", "bin", "start", "--account", "test-org", "--track", "prod"],
-      handlers
+      handlers,
+      { resolveArch: stubResolveArch }
     );
 
     assert.strictEqual(handler.mock.calls.length, 1);

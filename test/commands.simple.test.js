@@ -95,9 +95,7 @@ describe("[commands] comandos simples (theme vs root)", () => {
 
     it(`${name}: deve recusar pasta que não é de tema quando source é theme`, () => {
       sandbox.enter(rootProject);
-      run({ source: "theme" });
-      assert.equal(exitSpy.mock.calls.length, 1);
-      assert.match(errorSpy.mock.calls[0].arguments[0], /TEMA MILLBODY/);
+      assert.throws(() => run({ source: "theme" }), /TEMA MILLBODY/);
     });
   }
 });

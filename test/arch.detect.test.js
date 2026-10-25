@@ -129,11 +129,12 @@ describe("[arch/detect] detectArchitecture", () => {
 });
 
 describe("[arch/detect] resolveArch", () => {
-  it("--arch força a arquitetura e normaliza para minúsculas (bypass da detecção)", () => {
+  it("--arch lança quando dir não tem marcadores da arquitetura solicitada (CA03)", () => {
     const dir = makeFixture({ "readme.txt": "x" });
-    const result = resolveArch({ archFlag: "EXPO", projectDir: dir });
-    assert.equal(result.arch, "expo");
-    assert.equal(result.projectDir, dir);
+    assert.throws(
+      () => resolveArch({ archFlag: "EXPO", projectDir: dir }),
+      /Projeto Millbody não encontrado/
+    );
   });
 
   it("--arch inválido lança erro claro", () => {
@@ -170,7 +171,7 @@ describe("[arch/detect] resolveArch", () => {
     const dir = makeFixture({ "readme.txt": "x" });
     assert.throws(
       () => resolveArch({ projectDir: dir }),
-      /Não foi possível detectar a arquitetura/
+      /Projeto Millbody não encontrado/
     );
   });
 

@@ -147,40 +147,28 @@ describe("[functions] checkFolderBySource", () => {
     assert.equal(checkFolderBySource(undefined), "root");
   });
 
-  it("deve sair quando theme não tem screens", () => {
+  it("deve lançar erro quando theme não tem screens", () => {
     sandbox.enter({ "millbodyApp.json": "{}" });
-    checkFolderBySource("theme");
-    assert.equal(exitSpy.mock.calls.length, 1);
-    assert.match(errorSpy.mock.calls[0].arguments[0], /TEMA MILLBODY/);
+    assert.throws(() => checkFolderBySource("theme"), /TEMA MILLBODY/);
   });
 
-  it("deve sair quando theme não tem millbodyApp.json", () => {
+  it("deve lançar erro quando theme não tem millbodyApp.json", () => {
     sandbox.enter({ "screens/.keep": "" });
-    checkFolderBySource("theme");
-    assert.equal(exitSpy.mock.calls.length, 1);
+    assert.throws(() => checkFolderBySource("theme"));
   });
 
-  it("deve sair quando root não tem mbCore", () => {
+  it("deve lançar erro quando root não tem mbCore", () => {
     sandbox.enter({ "millbodyApp.json": "{}" });
-    checkFolderBySource("root");
-    assert.equal(exitSpy.mock.calls.length, 1);
-    assert.match(errorSpy.mock.calls[0].arguments[0], /framework MILLBODY APP/);
+    assert.throws(() => checkFolderBySource("root"), /framework MILLBODY APP/);
   });
 
-  it("deve sair quando root não tem millbodyApp.json", () => {
+  it("deve lançar erro quando root não tem millbodyApp.json", () => {
     sandbox.enter({ "mbCore/.keep": "" });
-    checkFolderBySource("root");
-    assert.equal(exitSpy.mock.calls.length, 1);
+    assert.throws(() => checkFolderBySource("root"));
   });
 
-  it(
-    "deve sair com código diferente de zero em pasta inválida",
-    { todo: "BUG: process.exit() sem código encerra com status 0" },
-    () => {
-      sandbox.enter({});
-      checkFolderBySource("root");
-      const [code] = exitSpy.mock.calls[0].arguments;
-      assert.ok(typeof code === "number" && code !== 0);
-    }
-  );
+  it("deve lançar erro em pasta vazia inválida", () => {
+    sandbox.enter({});
+    assert.throws(() => checkFolderBySource("root"), /framework MILLBODY APP/);
+  });
 });
