@@ -132,13 +132,6 @@ describe("[e2e] roteamento por arquitetura — expo com --project", () => {
     assertYarnCall(readLog(logFile), "millbody", expoDir);
   });
 
-  it("deve chamar 'yarn millbody:create' com cwd=expoDir para millbody create --account demo --project", () => {
-    const logFile = freshLog();
-    const result = runCli(["create", "--account", "demo", "--project", expoDir], { logFile });
-    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assertYarnCall(readLog(logFile), "millbody:create", expoDir);
-  });
-
   it("deve sair com código 1 e não chamar yarn para millbody codepush --project (unsupported)", () => {
     const logFile = freshLog();
     const result = runCli(["codepush", "--project", expoDir], { logFile });

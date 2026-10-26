@@ -47,6 +47,7 @@ const logged = () => logSpy.mock.calls.map((call) => call.arguments[0]);
 
 describe("[commands] create", () => {
   let root;
+  const stubPrepare = async () => ({ branch: "accounts/acme", mode: "new" });
 
   beforeEach(() => {
     root = sandbox.enter(rootProject);
@@ -65,11 +66,11 @@ describe("[commands] create", () => {
 
   it("deve recusar pasta que não é raiz de projeto Millbody", async () => {
     fs.rmSync("mbCore", { recursive: true });
-    await assert.rejects(create({ account: "acme" }), /framework MILLBODY APP/);
+    await assert.rejects(create({ account: "acme" }, { prepareAccountBranch: stubPrepare }), /framework MILLBODY APP/);
   });
 
   it("deve avisar e não consultar a API sem --account", async () => {
-    await create({});
+    await create({}, { prepareAccountBranch: stubPrepare });
     assert.ok(logged().some((m) => /argumento --account/.test(m)));
     assert.equal(fetchSpy.mock.calls.length, 0);
     assert.equal(shell.commands().length, 0);
@@ -78,14 +79,14 @@ describe("[commands] create", () => {
   it("deve exibir a mensagem da API e parar quando ela retorna message", async () => {
     fetchSpy.mock.restore();
     fetchSpy = mockFetch({ message: "Conta não encontrada" });
-    await create({ account: "acme" });
+    await create({ account: "acme" }, { prepareAccountBranch: stubPrepare });
     assert.ok(logged().includes("Conta não encontrada"));
     assert.equal(shell.commands().length, 0);
     assert.deepEqual(readJson("millbodyApp.json"), { account: "acme" });
   });
 
   it("deve consultar a API com a conta informada", async () => {
-    await create({ account: "acme" });
+    await create({ account: "acme" }, { prepareAccountBranch: stubPrepare });
     assert.equal(
       fetchSpy.mock.calls[0].arguments[0],
       "https://api.test/api/alderaan/v1/acme/app/"
@@ -93,7 +94,7 @@ describe("[commands] create", () => {
   });
 
   it("deve gravar millbodyApp.json na raiz e no tema com versionLabel padrão", async () => {
-    await create({ account: "acme" });
+    await create({ account: "acme" }, { prepareAccountBranch: stubPrepare });
     const themeFile = `${root}/mbContent/themes/acme-theme/millbodyApp.json`;
     await waitFor(
       () =>
@@ -111,53 +112,53 @@ describe("[commands] create", () => {
   it("deve preservar versionLabel retornado pela API", async () => {
     fetchSpy.mock.restore();
     fetchSpy = mockFetch({ themeName: "acme-theme", versionLabel: "5.1" });
-    await create({ account: "acme" });
-    await waitFor(() => readJson("millbodyApp.json").themeName);
+    await create({ account: "acme" }, { prepareAccountBranch: stubPrepare });
+    await waitFor(() => isReadable("millbodyApp.json") && readJson("millbodyApp.json").themeName);
     assert.equal(readJson("millbodyApp.json").versionLabel, "5.1");
   });
 
   it("deve executar a sequência de comandos na ordem esperada", async () => {
-    await create({ account: "acme", track: "beta" });
+    await create({ account: "acme", track: "beta" }, { prepareAccountBranch: stubPrepare });
     const themeFolder = `${root}/mbContent/themes/acme-theme`;
     const commands = shell.commands();
-    assert.equal(commands.length, 8);
-    assert.match(commands[0], new RegExp(`^cd ${themeFolder} && git checkout master && git checkout -b acme`));
-    assert.match(commands[1], /^kill -9 /);
-    assert.equal(commands[2], `cd ${root} && node millbodyapp.config.js`);
-    assert.equal(commands[3], "killall Xcode");
-    assert.match(commands[4], /fastlane default_setapp theme_folder:acme-theme/);
-    assert.equal(commands[5], `ttab "cd ${themeFolder}; millbody start"`);
-    assert.equal(commands[6], `cd ${root}/ios && xed .`);
-    assert.match(commands[7], /gradlew bundleRelease/);
+    assert.equal(commands.length, 7);
+    assert.match(commands[0], /^kill -9 /);
+    assert.equal(commands[1], `cd ${root} && node millbodyapp.config.js`);
+    assert.equal(commands[2], "killall Xcode");
+    assert.match(commands[3], /fastlane default_setapp theme_folder:acme-theme/);
+    assert.match(commands[3], /git push origin accounts\/acme/);
+    assert.equal(commands[4], `ttab "cd ${themeFolder}; millbody start"`);
+    assert.equal(commands[5], `cd ${root}/ios && xed .`);
+    assert.match(commands[6], /gradlew bundleRelease/);
   });
 
   it("deve usar fastlane create_app quando track não é prod", async () => {
-    await create({ account: "acme", track: "beta" });
+    await create({ account: "acme", track: "beta" }, { prepareAccountBranch: stubPrepare });
     assert.match(shell.commands().at(-1), /fastlane create_app theme_folder:acme-theme$/);
   });
 
   it("deve usar fastlane deploy quando track é prod", async () => {
-    await create({ account: "acme", track: "prod" });
+    await create({ account: "acme", track: "prod" }, { prepareAccountBranch: stubPrepare });
     assert.match(shell.commands().at(-1), /fastlane deploy theme_folder:acme-theme$/);
   });
 
   it("deve registrar o erro quando não consegue gravar o millbodyApp.json da raiz", async () => {
     fs.rmSync("millbodyApp.json");
     fs.mkdirSync("millbodyApp.json");
-    await create({ account: "acme" });
+    await create({ account: "acme" }, { prepareAccountBranch: stubPrepare });
     await waitFor(() => logged().some((m) => m?.code === "EISDIR"));
   });
 
   it("deve registrar o erro quando a pasta do tema não existe", async () => {
     fs.rmSync("mbContent", { recursive: true });
-    await create({ account: "acme" });
+    await create({ account: "acme" }, { prepareAccountBranch: stubPrepare });
     await waitFor(() => logged().some((m) => m?.code === "ENOENT"));
   });
 
   it("deve propagar falhas da API", async () => {
     fetchSpy.mock.restore();
     fetchSpy = mockFetch(async () => ({ ok: false, status: 500, statusText: "Erro" }));
-    await assert.rejects(create({ account: "acme" }), /500/);
+    await assert.rejects(create({ account: "acme" }, { prepareAccountBranch: stubPrepare }), /500/);
     assert.equal(shell.commands().length, 0);
   });
 

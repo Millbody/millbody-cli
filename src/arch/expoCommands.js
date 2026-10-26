@@ -1,7 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
 import { runScript } from "./runner.js";
+import {
+  ACCOUNT_REGEX,
+  prepareAccountBranch as defaultPrepareAccountBranch,
+} from "../git/accountBranch.js";
+
+export { ACCOUNT_REGEX };
 
 export const EXPO_COMMAND_MAP = [
   { command: "start", script: "start" },
@@ -24,8 +29,6 @@ export const EXPO_COMMAND_MAP = [
       "O comando test no app-mobile executa jest --watchAll (interativo) e não é adequado para uso via CLI. Execute diretamente no projeto.",
   },
 ];
-
-const ACCOUNT_REGEX = /^[a-z0-9][a-z0-9_-]*$/i;
 
 export function upsertEnvVar(content, key, value) {
   const normalized = content.replace(/\r\n/g, "\n");
@@ -57,7 +60,10 @@ async function writeEnvAccountAtomic(projectDir, account) {
   fs.renameSync(tmp, envPath);
 }
 
-export function makeExpoHandlers({ runScript: runScriptFn = runScript } = {}) {
+export function makeExpoHandlers({
+  runScript: runScriptFn = runScript,
+  prepareAccountBranch: prepareAccountBranchFn = defaultPrepareAccountBranch,
+} = {}) {
   const handlers = {};
 
   for (const row of EXPO_COMMAND_MAP) {
@@ -79,6 +85,12 @@ export function makeExpoHandlers({ runScript: runScriptFn = runScript } = {}) {
           console.error(
             `Conta inválida: "${account}". Use apenas letras, números, hifens e underscores (deve começar com letra ou número).`
           );
+          return 1;
+        }
+        try {
+          await prepareAccountBranchFn({ projectDir, account });
+        } catch (err) {
+          console.error(err.message);
           return 1;
         }
         await writeEnvAccountAtomic(projectDir, account);

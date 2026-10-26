@@ -146,10 +146,13 @@ describe("[arch/expoCommands] create --account", () => {
 
   it("conta válida: grava EXPO_PUBLIC_ACCOUNT atomicamente e roda millbody:create", async () => {
     const runScript = mock.fn(async () => 0);
+    const prepareAccountBranch = mock.fn(async () => ({ branch: "accounts/Acme_01", mode: "new" }));
     const projectDir = makeDir();
-    const handlers = makeExpoHandlers({ runScript });
+    const handlers = makeExpoHandlers({ runScript, prepareAccountBranch });
     const code = await handlers.create({ projectDir, account: "Acme_01" });
     assert.equal(code, 0);
+    assert.equal(prepareAccountBranch.mock.calls.length, 1);
+    assert.equal(prepareAccountBranch.mock.calls[0].arguments[0].account, "Acme_01");
     const content = fs.readFileSync(path.join(projectDir, ".env.account"), "utf8");
     assert.match(content, /EXPO_PUBLIC_ACCOUNT=Acme_01/);
     assert.equal(fs.existsSync(path.join(projectDir, `.env.account.tmp.${process.pid}`)), false);
@@ -160,19 +163,32 @@ describe("[arch/expoCommands] create --account", () => {
 
   it("preserva outras chaves do .env.account existente (EC06)", async () => {
     const runScript = mock.fn(async () => 0);
+    const prepareAccountBranch = mock.fn(async () => ({ branch: "accounts/nova", mode: "new" }));
     const projectDir = makeDir();
     fs.writeFileSync(
       path.join(projectDir, ".env.account"),
       "FOO=bar\r\nEXPO_PUBLIC_ACCOUNT=old\r\n",
       "utf8"
     );
-    const handlers = makeExpoHandlers({ runScript });
+    const handlers = makeExpoHandlers({ runScript, prepareAccountBranch });
     await handlers.create({ projectDir, account: "nova" });
     const content = fs.readFileSync(path.join(projectDir, ".env.account"), "utf8");
     assert.match(content, /FOO=bar/);
     assert.match(content, /EXPO_PUBLIC_ACCOUNT=nova/);
     assert.doesNotMatch(content, /EXPO_PUBLIC_ACCOUNT=old/);
     assert.doesNotMatch(content, /\r/);
+  });
+
+  it("prepareAccountBranch falha: retorna 1 e não grava .env.account", async () => {
+    const runScript = mock.fn(async () => 0);
+    const prepareAccountBranch = mock.fn(async () => { throw new Error("sem remoto"); });
+    const projectDir = makeDir();
+    const handlers = makeExpoHandlers({ runScript, prepareAccountBranch });
+    const code = await handlers.create({ projectDir, account: "acme" });
+    assert.equal(code, 1);
+    assert.equal(runScript.mock.calls.length, 0);
+    assert.equal(fs.existsSync(path.join(projectDir, ".env.account")), false);
+    assert.match(errors()[0], /sem remoto/);
   });
 });
 

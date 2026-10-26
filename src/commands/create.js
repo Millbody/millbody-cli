@@ -2,18 +2,34 @@ import fs from "fs";
 
 import { executeCommand, checkFolderBySource } from "../functions.js";
 import { getAppAccount } from "../services/api.js";
+import {
+  ACCOUNT_REGEX,
+  prepareAccountBranch as defaultPrepareAccountBranch,
+} from "../git/accountBranch.js";
 
-export default async function create(options) {
-  const source = checkFolderBySource("root");
+export default async function create(options, deps = {}) {
+  const { prepareAccountBranch = defaultPrepareAccountBranch } = deps;
+
+  checkFolderBySource("root");
 
   const { account } = options;
   if (!account) return console.log("Ops! não encontrei o argumento --account");
+
+  if (!ACCOUNT_REGEX.test(account)) {
+    throw new Error(
+      `Conta inválida: "${account}". Use apenas letras, números, hifens e underscores (deve começar com letra ou número).`
+    );
+  }
+
   const rootFolder = process.cwd();
   const millbodyJSON = await getAppAccount(options.account);
   if (millbodyJSON.message) return console.log(millbodyJSON.message);
   if (!millbodyJSON.versionLabel) millbodyJSON.versionLabel = "3.0";
   const { themeName } = millbodyJSON;
   const themeFolder = `${rootFolder}/mbContent/themes/${themeName}`;
+
+  await prepareAccountBranch({ projectDir: themeFolder, account });
+
   console.log("Criando o setup millbody na raiz do projeto");
   fs.writeFile(
     `${rootFolder}/millbodyApp.json`,
@@ -24,10 +40,6 @@ export default async function create(options) {
     }
   );
 
-  console.log("Criando a variação do tema para account");
-  await executeCommand(
-    `cd ${themeFolder} && git checkout master && git checkout -b ${account} && echo "OK" || git checkout ${account}`
-  );
   console.log("Colocando o setup no tema");
   fs.writeFile(
     `${themeFolder}/millbodyApp.json`,
@@ -45,7 +57,7 @@ export default async function create(options) {
   executeCommand(`killall Xcode`);
   console.log("Setup de chave + firebase");
   await executeCommand(
-    `cd ${rootFolder}/android && fastlane default_setapp theme_folder:${themeName} && echo "Hora de criar o commit..." && cd ${themeFolder} && git add --all && git commit -m "launch app" && git push origin ${account} `
+    `cd ${rootFolder}/android && fastlane default_setapp theme_folder:${themeName} && echo "Hora de criar o commit..." && cd ${themeFolder} && git add --all && git commit -m "launch app" && git push origin accounts/${account} `
   );
   console.log("Ligando o react Native");
   await executeCommand(
