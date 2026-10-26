@@ -262,36 +262,52 @@ millbody codepush --source root
 
 ### millbody create
 
-Setup completo para uma nova conta: busca metadados via API Millbody, cria `millbodyApp.json` na raiz e na pasta do tema, cria branch git com o nome da conta, executa `millbodyapp.config.js`, roda `fastlane` e abre o Xcode. Faz `git commit` e `git push` ao final.
+Setup completo para uma nova conta.
+
+**Modo expo** (com `--arch expo --project <dir>`): valida a conta, cria ou troca para a branch `accounts/<conta>` a partir de `origin/main` no repositório apontado por `--project`, grava `EXPO_PUBLIC_ACCOUNT` em `.env.account` e executa `yarn millbody:create`.
+
+**Modo legacy** (sem `--arch`): valida a conta, busca metadados via API Millbody, cria ou troca para a branch `accounts/<conta>` a partir de `origin/main` no repositório do tema (`mbContent/themes/<themeName>`), cria `millbodyApp.json` na raiz e no tema, executa `millbodyapp.config.js`, roda `fastlane` e abre o Xcode. Faz `git commit` e `git push origin accounts/<conta>` ao final.
+
+> **Mudança de comportamento (v2.0.3):** A branch criada agora se chama `accounts/<conta>` (e não `<conta>`). O push legacy também usa `accounts/<conta>`. Repositórios legacy sem a branch `main` no remoto `origin` resultam em erro — crie `origin/main` ou use a v2.0.2.
 
 **Requer** `--account`. Sem ele, exibe aviso e encerra sem executar nada.
 
 **Flags:**
-- `--account, -a <conta>` — identificador da conta na API Millbody (**obrigatório**)
-- `--track, -t <prod|beta>` — faixa de publicação: `prod` → `fastlane deploy`; outros → `fastlane create_app`
+- `--account, -a <conta>` — identificador da conta (**obrigatório**). Deve seguir `/^[a-z0-9][a-z0-9_-]*$/i`.
+- `--track, -t <prod|beta>` — faixa de publicação: `prod` → `fastlane deploy`; outros → `fastlane create_app`. (Somente legacy)
 
-**Comandos externos executados (na ordem):**
-1. `git checkout master && git checkout -b <account>` (na pasta do tema)
-2. `node millbodyapp.config.js`
-3. `killall Xcode`
-4. `kill -9 'lsof -t -i:8081'`
-5. `cd android && fastlane default_setapp theme_folder:<themeName>`
-6. `git add --all && git commit -m "launch app" && git push origin <account>`
-7. `ttab "cd <themeFolder>; millbody start"`
-8. `cd ios && xed .`
-9. `cd android && ./gradlew bundleRelease`
-10. `cd ios && fastlane deploy|create_app theme_folder:<themeName>`
+**Comandos externos executados — modo expo (na ordem):**
+1. `git fetch origin +refs/heads/main:refs/remotes/origin/main` (no `--project`)
+2. `git switch -c accounts/<conta> --no-track origin/main` (nova) | `git switch accounts/<conta>` (local) | `git switch -c accounts/<conta> --track origin/accounts/<conta>` (remota)
+3. Grava `EXPO_PUBLIC_ACCOUNT` em `.env.account`
+4. `yarn millbody:create`
+
+**Comandos externos executados — modo legacy (na ordem):**
+1. `git fetch origin +refs/heads/main:refs/remotes/origin/main` (na pasta do tema)
+2. `git switch -c accounts/<conta> --no-track origin/main` (nova) | `git switch accounts/<conta>` (local) | `git switch -c accounts/<conta> --track origin/accounts/<conta>` (remota)
+3. `node millbodyapp.config.js`
+4. `killall Xcode`
+5. `kill -9 'lsof -t -i:8081'`
+6. `cd android && fastlane default_setapp theme_folder:<themeName>`
+7. `git add --all && git commit -m "launch app" && git push origin accounts/<conta>`
+8. `ttab "cd <themeFolder>; millbody start"`
+9. `cd ios && xed .`
+10. `cd android && ./gradlew bundleRelease`
+11. `cd ios && fastlane deploy|create_app theme_folder:<themeName>`
 
 **Efeitos colaterais:**
-- Cria/sobrescreve `millbodyApp.json` na raiz e na pasta do tema
-- Cria branch git com o nome da conta e faz push
-- Abre nova aba no terminal (`ttab`)
-- Abre Xcode (`xed`)
+- Cria ou troca para branch `accounts/<conta>` a partir de `origin/main` (legacy e expo)
+- Cria/sobrescreve `millbodyApp.json` na raiz e na pasta do tema (legacy)
+- Faz `git commit` e `git push origin accounts/<conta>` (legacy)
+- Grava `EXPO_PUBLIC_ACCOUNT` em `.env.account` (expo)
+- Abre nova aba no terminal (`ttab`) (legacy)
+- Abre Xcode (`xed`) (legacy)
 
 **Exemplos:**
 ```bash
 millbody create --account minha-conta
 millbody create --account minha-conta --track prod
+millbody create --account minha-conta --arch expo --project ./app-mobile
 ```
 
 ---
