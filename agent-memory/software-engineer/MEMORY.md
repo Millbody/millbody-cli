@@ -29,6 +29,13 @@
 - Injeção de dependência para child_process: módulos recebem `spawn`/`execFile` como parâmetro; somente `src/arch/proc.js` importa `node:child_process`
 - `hasBinary` usa PATH scan com `fs.existsSync` (sem processos); paths extras vêm de `env.MILLBODY_SYSTEM_BIN_PATHS` (default `/opt/homebrew/bin:/usr/local/bin`), seam para testes herméticos
 
+## Cobertura & Mocks de Módulo
+
+- `mock.module("../src/git/accountBranch.js", ...)` em qualquer arquivo de teste QUEBRA a cobertura de accountBranch.js no merge cross-process (reporta ~18% em vez de 100%). Solução: injeção de dependência via `create(options, { prepareAccountBranch: stub })`.
+- **Ordem crítica de imports em arquivos de teste ESM**: imports estáticos são hoisted ANTES de qualquer `mock.module`. Se um import estático carregar `functions.js` ou `node:child_process` antes de `installExecMock()` instalar o mock, todos os testes de shell commands quebram (shell.commands() retorna []). Regra: módulos que dependem de `node:child_process` mockado DEVEM ser importados dinamicamente (`await import(...)`) APÓS os mocks serem instalados.
+- Destructuring default `const [x = "0"] = arr` NÃO cobre string vazia `""` (apenas `undefined`). Usar `const x = arr[0] || "0"` para valores falsy.
+- Testes com `{ todo: "..." }` não contam como pass nem fail — remover a opção para convertê-los em testes reais após implementar o fix.
+
 ## Erros Recorrentes & Soluções
 
 - Testes que afirmam comportamento antigo precisam ser atualizados quando o comportamento muda:

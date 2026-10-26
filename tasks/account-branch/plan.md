@@ -126,22 +126,22 @@ Helper interno `git(args)` = `promisify(execFile)("git", ["-C", projectDir, ...a
 ## 📝 TASKS
 
 ### Fase 1: Módulo compartilhado
-- [ ] T1.1: [MEDIUM] Criar `src/git/accountBranch.js` (ACCOUNT_REGEX + prepareAccountBranch, DI execFile, ≤300 linhas, sem comentários).
+- [x] T1.1: [MEDIUM] Criar `src/git/accountBranch.js` (ACCOUNT_REGEX + prepareAccountBranch, DI execFile, ≤300 linhas, sem comentários).
 
 ### Fase 2: Integração expo + legacy
-- [ ] T2.1: [MEDIUM] `expoCommands.js`: importar ACCOUNT_REGEX e prepareAccountBranch do módulo; nova ordem no handler create; remover ACCOUNT_REGEX duplicado.
-- [ ] T2.2: [MEDIUM] `create.js`: validar account; substituir checkout shell por prepareAccountBranch(themeFolder); ajustar ref do push (D6); deps injetável (D7).
+- [x] T2.1: [MEDIUM] `expoCommands.js`: importar ACCOUNT_REGEX e prepareAccountBranch do módulo; nova ordem no handler create; remover ACCOUNT_REGEX duplicado.
+- [x] T2.2: [MEDIUM] `create.js`: validar account; substituir checkout shell por prepareAccountBranch(themeFolder); ajustar ref do push (D6); deps injetável (D7).
 
 ### Fase 3: Docs + versão
-- [ ] T3.1: [LOW] `registry/shared.js` (hoje 276 linhas): atualizar descrição/externals/sideEffects do create (branch `accounts/<code>` a partir de main; add entrada `(expo)` para os passos git). MANTER < 300 linhas (verificar `wc -l`); se exceder, extrair o descritor `create` para `registry/create.js` preservando ordem/interface do agregador.
-- [ ] T3.2: [LOW] `README.md`: seção create (expo+legacy) + comportamento de branch.
-- [ ] T3.3: [LOW] `package.json`: versão 2.0.3.
+- [x] T3.1: [LOW] `registry/shared.js` (hoje 276 linhas): atualizar descrição/externals/sideEffects do create (branch `accounts/<code>` a partir de main; add entrada `(expo)` para os passos git). MANTER < 300 linhas (verificar `wc -l`); se exceder, extrair o descritor `create` para `registry/create.js` preservando ordem/interface do agregador.
+- [x] T3.2: [LOW] `README.md`: seção create (expo+legacy) + comportamento de branch.
+- [x] T3.3: [LOW] `package.json`: versão 2.0.3.
 
 ### Fase 4: Testes (test-engineer)
-- [ ] T4.0: [LOW] Criar `test/helpers/gitRepo.js`: `makeOriginAndClone()` → bare origin com `main` + clone, env hermético (`GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, `HOME=<tmp>`, `GIT_AUTHOR_*`/`GIT_COMMITTER_*`, `GIT_TERMINAL_PROMPT=0`, `GIT_CEILING_DIRECTORIES=<tmp parent>`), `git init -b main -c commit.gpgsign=false`. Assert `projectDir` começa com `os.tmpdir()`. Cleanup só em dirs mktemp.
-- [ ] T4.1: [HIGH] Unit de `accountBranch.js` com execFile injetado (runner dispatcher por `args`): cada caso/erro (RF01-RF06), classificação de exit code (code 1=ausente vs code 128/ENOENT=erro, stderr na msg), account inválido rejeitado antes de git, mensagens verbatim, argv exato (`--no-track`, `switch -c --track`, fetch refspec explícito). Arquivo separado `test/git.accountBranch.test.js`.
-- [ ] T4.2: [HIGH] Integração em repos git temporários REAIS (via gitRepo.js), arquivo `test/git.accountBranch.int.test.js` SEM module-mock: new from origin/main com SHA == origin/main (checar por `rev-parse`/`merge-base --is-ancestor`, com local atrás/à frente/em outra branch/detached), local existente (sem reset), remoto-only (tracking), dirty bloqueia, untracked permitido, sem remoto/fetch falha, legacy sem `main` (só master) falha claro, `branch.<b>.merge` ausente após mode=new (finding 2).
-- [ ] T4.3: [MEDIUM] Atualizar testes acoplados: `arch.expoCommands.test.js` (injetar stub `prepareAccountBranch`, add ordem+falha), `commands.create.test.js`/`regression.legacy.test.js` (injetar `deps.prepareAccountBranch`, ajustar índices e o ref de push `accounts/acme`; `grep -rn "checkout master" test/`), e2e `create` (fixture real repo OU novo `test/e2e.accountBranch.test.js` com git real + shim só de yarn — cobre CA02), help-consistency/help-render (derivados do registry). Manter verdes e cobertura ≥ 90/85/90 (`npm run test:coverage` após cada fase).
+- [x] T4.0: [LOW] Criar `test/helpers/gitRepo.js`: `makeOriginAndClone()` → bare origin com `main` + clone, env hermético (`GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, `HOME=<tmp>`, `GIT_AUTHOR_*`/`GIT_COMMITTER_*`, `GIT_TERMINAL_PROMPT=0`, `GIT_CEILING_DIRECTORIES=<tmp parent>`), `git init -b main -c commit.gpgsign=false`. Assert `projectDir` começa com `os.tmpdir()`. Cleanup só em dirs mktemp.
+- [x] T4.1: [HIGH] Unit de `accountBranch.js` com execFile injetado (runner dispatcher por `args`): cada caso/erro (RF01-RF06), classificação de exit code (code 1=ausente vs code 128/ENOENT=erro, stderr na msg), account inválido rejeitado antes de git, mensagens verbatim, argv exato (`--no-track`, `switch -c --track`, fetch refspec explícito). Arquivo separado `test/git.accountBranch.test.js`.
+- [x] T4.2: [HIGH] Integração em repos git temporários REAIS (via gitRepo.js), arquivo `test/git.accountBranch.int.test.js` SEM module-mock: new from origin/main com SHA == origin/main (checar por `rev-parse`/`merge-base --is-ancestor`, com local atrás/à frente/em outra branch/detached), local existente (sem reset), remoto-only (tracking), dirty bloqueia, untracked permitido, sem remoto/fetch falha, legacy sem `main` (só master) falha claro, `branch.<b>.merge` ausente após mode=new (finding 2).
+- [x] T4.3: [MEDIUM] Atualizar testes acoplados: `arch.expoCommands.test.js` (injetar stub `prepareAccountBranch`, add ordem+falha), `commands.create.test.js`/`regression.legacy.test.js` (injetar `deps.prepareAccountBranch`, ajustar índices e o ref de push `accounts/acme`; `grep -rn "checkout master" test/`), e2e `create` (fixture real repo OU novo `test/e2e.accountBranch.test.js` com git real + shim só de yarn — cobre CA02), help-consistency/help-render (derivados do registry). Manter verdes e cobertura ≥ 90/85/90 (`npm run test:coverage` após cada fase).
 
 ## 🔀 Análise Dual
 
