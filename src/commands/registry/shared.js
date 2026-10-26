@@ -97,7 +97,7 @@ const sharedCommands = [
     summary: "Cria uma nova configuração de app (setup completo)",
     usage: "millbody create --account <conta>",
     description:
-      "Setup completo para uma nova conta. No modo legacy: busca metadados via API, cria millbodyApp.json, branch git, executa fastlane e abre Xcode. No modo expo: valida conta, grava EXPO_PUBLIC_ACCOUNT em .env.account e roda yarn millbody:create.",
+      "Setup completo para uma nova conta. No modo legacy: valida conta, busca metadados via API, cria branch accounts/<conta> a partir de main no repositório do tema, cria millbodyApp.json, executa fastlane e abre Xcode. No modo expo: valida conta, cria/troca para branch accounts/<conta> a partir de origin/main, grava EXPO_PUBLIC_ACCOUNT em .env.account e roda yarn millbody:create.",
     flags: [
       {
         flags: "--account, -a <conta>",
@@ -117,7 +117,11 @@ const sharedCommands = [
     ],
     prerequisites: [
       "source=root: pasta deve conter ./mbCore e ./millbodyApp.json (legacy)",
-      "git, fastlane, ttab, xed (Xcode) instalados (legacy)",
+      "git >= 2.23 instalado (legacy e expo)",
+      "Remoto origin com branch main configurado (legacy e expo)",
+      "Working tree do repositório do tema limpa (sem mudanças rastreadas/staged) (legacy)",
+      "Working tree do projectDir limpa (sem mudanças rastreadas/staged) (expo)",
+      "fastlane, ttab, xed (Xcode) instalados (legacy)",
       "Pasta mbContent/themes/<themeName> existente (legacy)",
       "Arquivo millbodyapp.config.js na raiz (legacy)",
       "mbCore/fastlane/keys/millbody.json com token de API (legacy)",
@@ -125,12 +129,15 @@ const sharedCommands = [
       "yarn instalado (expo)",
     ],
     external: [
-      "git checkout master && git checkout -b <account> (legacy)",
+      "(expo) git fetch origin +refs/heads/main:refs/remotes/origin/main",
+      "(expo) git switch -c accounts/<conta> --no-track origin/main (nova) | git switch accounts/<conta> (local) | git switch -c accounts/<conta> --track origin/accounts/<conta> (remota)",
+      "(legacy) git fetch origin +refs/heads/main:refs/remotes/origin/main",
+      "(legacy) git switch -c accounts/<conta> --no-track origin/main (nova) | git switch accounts/<conta> (local) | git switch -c accounts/<conta> --track origin/accounts/<conta> (remota)",
       "node millbodyapp.config.js (legacy)",
       "killall Xcode (legacy)",
       "kill -9 'lsof -t -i:8081' (legacy)",
       "cd android && fastlane default_setapp theme_folder:<themeName> (legacy)",
-      "git add --all && git commit -m 'launch app' && git push origin <account> (legacy)",
+      "git add --all && git commit -m 'launch app' && git push origin accounts/<conta> (legacy)",
       "ttab 'cd <themeFolder>; millbody start' (legacy)",
       "cd ios && xed . (legacy)",
       "cd android && ./gradlew bundleRelease (legacy)",
@@ -138,10 +145,10 @@ const sharedCommands = [
       "yarn millbody:create (expo)",
     ],
     sideEffects: [
+      "Cria ou troca para branch accounts/<conta> a partir de origin/main (legacy e expo)",
       "Cria millbodyApp.json na raiz do projeto (legacy)",
       "Cria millbodyApp.json na pasta do tema (legacy)",
-      "Cria branch git com o nome da conta (legacy)",
-      "Faz git commit e git push (legacy)",
+      "Faz git commit e git push origin accounts/<conta> (legacy)",
       "Abre nova aba no terminal (ttab) (legacy)",
       "Abre Xcode (xed) (legacy)",
       "Grava EXPO_PUBLIC_ACCOUNT em .env.account (expo)",
