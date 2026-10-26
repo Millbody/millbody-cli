@@ -61,6 +61,7 @@ describe("[e2e] create cria branch accounts/<conta> (CA02)", () => {
     assert.equal(repo.git("rev-parse", "HEAD"), repo.git("rev-parse", "origin/main"));
     assert.match(result.stdout, /Branch accounts\/demo criada a partir de origin\/main\./);
     assert.match(fs.readFileSync(logFile, "utf8"), /argv=millbody:create/);
+    assert.ok(fs.readFileSync(logFile, "utf8").includes(`cwd=${repo.clone}`));
     assert.match(fs.readFileSync(path.join(repo.clone, ".env.account"), "utf8"), /EXPO_PUBLIC_ACCOUNT=demo/);
   });
 

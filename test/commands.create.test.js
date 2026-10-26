@@ -113,7 +113,7 @@ describe("[commands] create", () => {
     fetchSpy.mock.restore();
     fetchSpy = mockFetch({ themeName: "acme-theme", versionLabel: "5.1" });
     await create({ account: "acme" }, { prepareAccountBranch: stubPrepare });
-    await waitFor(() => readJson("millbodyApp.json").themeName);
+    await waitFor(() => isReadable("millbodyApp.json") && readJson("millbodyApp.json").themeName);
     assert.equal(readJson("millbodyApp.json").versionLabel, "5.1");
   });
 

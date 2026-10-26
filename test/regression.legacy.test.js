@@ -4,6 +4,10 @@ import { installExecMock, rootProject, mockFetch } from "./helpers/world.js";
 import { createSandbox, waitFor } from "./helpers/sandbox.js";
 
 const shell = installExecMock();
+const prepareAccountBranch = mock.fn(async ({ account }) => ({ branch: `accounts/${account}`, mode: "new" }));
+mock.module("../src/git/accountBranch.js", {
+  namedExports: { prepareAccountBranch, ACCOUNT_REGEX: /^[a-z0-9][a-z0-9_-]*$/i },
+});
 const select = mock.fn(async () => "start");
 mock.module("@inquirer/prompts", { namedExports: { select } });
 
@@ -59,14 +63,14 @@ describe("[regressão D2] flags novas não alteram o fluxo legado", () => {
 
   it("create gera a MESMA sequência de comandos com e sem --project", async () => {
     await cli(argv("create", "-a", "acme", "-t", "beta", "--source", "root"));
-    await waitFor(() => shell.commands().length === 8);
+    await waitFor(() => shell.commands().length === 7);
     const semFlags = shell.commands();
 
     shell.reset();
     fetchSpy.mock.restore();
     fetchSpy = mockFetch({ themeName: "acme-theme", account: "acme" });
     await cli(argv("create", "-a", "acme", "-t", "beta", "--source", "root", "--project", "."));
-    await waitFor(() => shell.commands().length === 8);
+    await waitFor(() => shell.commands().length === 7);
     const comFlags = shell.commands();
 
     assert.deepEqual(comFlags, semFlags);
