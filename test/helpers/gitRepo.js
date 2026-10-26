@@ -34,7 +34,7 @@ export function makeOriginAndClone() {
   const env = makeHermeticEnv(root);
 
   const run = (cwd, ...args) =>
-    execFileSync("git", args, { cwd, env, encoding: "utf8" }).trim();
+    execFileSync("git", args, { cwd, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 
   fs.mkdirSync(origin);
   run(origin, "init", "--bare", "-b", "main");
