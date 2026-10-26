@@ -8,7 +8,6 @@ export default async function updateApk(options) {
 
   const { account } = options;
   if (!account) return console.log("Ops! não encontrei o argumento --account");
-  process.chdir("./");
   const rootFolder = process.cwd();
   const millbodyJSON = await getAppAccount(options.account);
   if (millbodyJSON.message) return console.log(millbodyJSON.message);

@@ -1,8 +1,12 @@
 import { exec } from "child_process";
 import fs from "fs";
 
-// var access = fs.createWriteStream('./millbody.access.log', { flags: 'a' }),
-//     error = fs.createWriteStream('./millbody.error.log', { flags: 'a' });
+import {
+  walkUp,
+  hasThemeMarkers,
+  hasRootMarkers,
+  describeExpectedMarkers,
+} from "./arch/detect.js";
 
 export async function executeCommand(command) {
   return new Promise(async function (resolve, reject) {
@@ -10,38 +14,54 @@ export async function executeCommand(command) {
 
     process.stdout.on("data", (data) => {
       console.log(data.toString());
-      // access.write(data.toString());
     });
 
     process.stderr.on("data", (data) => {
       console.log(data.toString());
-      // error.write(data.toString());
     });
 
     process.on("exit", (code) => {
       console.log(code?.toString());
-      // access.write(code.toString());
       resolve(code);
     });
   });
 }
 
-export function checkFolderBySource(source) {
-  if (source == "theme") {
-    if (fs.existsSync("./screens") && fs.existsSync("./millbodyApp.json")) {
-      return "theme";
-    } else {
-      console.error(
-        "A pasta não corresponde a um TEMA MILLBODY para executar esse comando no source THEME"
-      );
-      process.exit();
-    }
-  } else {
-    if (fs.existsSync("./mbCore") && fs.existsSync("./millbodyApp.json")) {
-      return "root";
-    } else {
-      console.error("Esse projeto não corresponde ao framework MILLBODY APP.");
-      process.exit();
-    }
+export function checkFolderBySource(source, { home } = {}) {
+  const predicate = source === "theme" ? hasThemeMarkers : hasRootMarkers;
+  const cwd = process.cwd();
+
+  if (predicate(cwd)) {
+    return source === "theme" ? "theme" : "root";
   }
+
+  const { dir, searched } = walkUp(cwd, predicate, { home });
+
+  if (!dir) {
+    const prefix =
+      source === "theme" ? "TEMA MILLBODY" : "framework MILLBODY APP";
+    const markers = describeExpectedMarkers(
+      source === "theme" ? "theme" : "root"
+    );
+    throw new Error(
+      `A pasta não corresponde a um ${prefix} para executar esse comando.\n` +
+        `Marcadores esperados: ${markers}\n` +
+        `Diretórios buscados: ${searched.join(", ")}`
+    );
+  }
+
+  try {
+    const realDir = fs.realpathSync(dir);
+    const realCwd = fs.realpathSync(cwd);
+    if (realDir !== realCwd) {
+      process.chdir(dir);
+      process.stderr.write(`[millbody] usando projeto em: ${dir}\n`);
+    }
+  } catch (err) {
+    throw new Error(
+      `Não foi possível mudar para o diretório: ${dir}\n${err.message}`
+    );
+  }
+
+  return source === "theme" ? "theme" : "root";
 }

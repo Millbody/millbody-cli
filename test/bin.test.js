@@ -47,7 +47,8 @@ describe("[bin/millbody] entrypoint (processo filho em pasta vazia)", () => {
 
   it("deve rodar o comando e recusar a pasta que não é um projeto Millbody", async () => {
     const result = await runBin(["start", "--source", "root"], { cwd: emptyDir });
-    assert.match(result.stderr, /não corresponde ao framework MILLBODY APP/);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Projeto Millbody não encontrado/);
   });
 
   it("deve imprimir a mensagem e sair com 1 para opção desconhecida", async () => {

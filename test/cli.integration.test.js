@@ -71,15 +71,7 @@ describe("[cli] integração cli -> comando com mocks", () => {
   }
 
   it("deve usar source theme por padrão", async () => {
-    const exitSpy = mock.method(process, "exit", () => {});
-    const errorSpy = mock.method(console, "error", () => {});
-    try {
-      await cli(argv("start"));
-      assert.match(errorSpy.mock.calls[0].arguments[0], /TEMA MILLBODY/);
-    } finally {
-      exitSpy.mock.restore();
-      errorSpy.mock.restore();
-    }
+    await assert.rejects(cli(argv("start")), /TEMA MILLBODY/);
   });
 
   for (const template of ["create", "update-apk", "updateapp"]) {
@@ -94,7 +86,7 @@ describe("[cli] integração cli -> comando com mocks", () => {
   }
 
   it("deve cair em start quando não há template e stdin não é TTY", async () => {
-    await cli(argv());
+    await cli(argv("--source", "root"));
     assert.match(shell.commands()[0], /react-native start|npm start/);
     assert.equal(select.mock.calls.length, 0);
   });

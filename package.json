@@ -1,6 +1,6 @@
 {
   "name": "@millbody/millbody-cli",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Um CLI para projetos usando o framework gym.Millbody",
   "main": "src/cli.js",
   "type": "module",

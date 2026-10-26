@@ -55,8 +55,7 @@ describe("[commands] updateApk", () => {
 
   it("deve recusar pasta que não é raiz de projeto Millbody", async () => {
     fs.rmSync("mbCore", { recursive: true });
-    await updateApk({ account: "acme" }).catch(() => {});
-    assert.match(errorSpy.mock.calls[0].arguments[0], /framework MILLBODY APP/);
+    await assert.rejects(updateApk({ account: "acme" }), /framework MILLBODY APP/);
   });
 
   it("deve avisar e não consultar a API sem --account", async () => {
