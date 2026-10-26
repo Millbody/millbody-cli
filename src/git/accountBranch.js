@@ -135,8 +135,9 @@ export async function prepareAccountBranch({
       "--count",
       `origin/${baseBranch}...${branch}`,
     ]);
-    const diverge = divergeResult.stdout.trim();
-    const [ahead = "0", behind = "0"] = diverge.split("\t");
+    const parts = divergeResult.stdout.trim().split("\t");
+    const ahead = parts[0] || "0";
+    const behind = parts[1] || "0";
     log(`Reaproveitando branch local ${branch} (origin/${baseBranch}: +${ahead}/-${behind}).`);
   } else if (remoteTrackingExists) {
     const switchResult = await git(["switch", "-c", branch, "--track", `origin/${branch}`]);

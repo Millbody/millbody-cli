@@ -6,14 +6,11 @@ import { createSandbox } from "./helpers/sandbox.js";
 const shell = installExecMock();
 const select = mock.fn(async () => "start");
 mock.module("@inquirer/prompts", { namedExports: { select } });
-mock.module("../src/git/accountBranch.js", {
-  namedExports: {
-    ACCOUNT_REGEX: /^[a-z0-9][a-z0-9_-]*$/i,
-    prepareAccountBranch: async () => ({ branch: "accounts/acme", mode: "new" }),
-  },
-});
 
-const { cli, promptForMissingOptions } = await import("../src/cli.js");
+const { cli, promptForMissingOptions, defaultHandlers } = await import("../src/cli.js");
+const { default: create } = await import("../src/commands/create.js");
+
+const prepareAccountBranchStub = async () => ({ branch: "accounts/acme", mode: "new" });
 
 const sandbox = createSandbox("millbody-sandbox-cli-");
 const argv = (...rest) => ["node", "millbody", ...rest];
@@ -82,7 +79,10 @@ describe("[cli] integração cli -> comando com mocks", () => {
 
   for (const template of ["create", "update-apk", "updateapp"]) {
     it(`deve rotear "${template}" e repassar --account e --track`, async () => {
-      await cli(argv(template, "-a", "acme", "-t", "prod"));
+      await cli(
+        argv(template, "-a", "acme", "-t", "prod"),
+        { ...defaultHandlers, create: (o) => create(o, { prepareAccountBranch: prepareAccountBranchStub }) }
+      );
       assert.match(
         fetchSpy.mock.calls[0].arguments[0],
         /\/api\/alderaan\/v1\/acme\/app\/$/
