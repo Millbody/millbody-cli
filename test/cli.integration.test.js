@@ -6,6 +6,12 @@ import { createSandbox } from "./helpers/sandbox.js";
 const shell = installExecMock();
 const select = mock.fn(async () => "start");
 mock.module("@inquirer/prompts", { namedExports: { select } });
+mock.module("../src/git/accountBranch.js", {
+  namedExports: {
+    ACCOUNT_REGEX: /^[a-z0-9][a-z0-9_-]*$/i,
+    prepareAccountBranch: async () => ({ branch: "accounts/acme", mode: "new" }),
+  },
+});
 
 const { cli, promptForMissingOptions } = await import("../src/cli.js");
 
